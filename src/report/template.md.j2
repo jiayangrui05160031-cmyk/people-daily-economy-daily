@@ -1,0 +1,121 @@
+{# 人民日报+中国经济网 · 经济新闻日报模板 ==============================================
+   设计原则:以叙述型分析为主,Markdown 表格作为补充,
+            词云图作为可选附属(用户原话:"我要的是 md 文件,分析和介绍以及解读")。
+#}
+
+# 经济新闻日报 · {{ date }}
+
+> 📅 **报告日期**: {{ date }}
+> 🤖 **生成时间**: {{ generated_at }}
+> 📰 **数据源**: 人民网财经频道 + 中国经济网
+> 📊 **文章总数**: {{ article_count }} 篇(总字数 {{ total_words }} 字)
+> 🧠 **AI 模型**: {{ ai_provider }} / {{ ai_model }}
+
+---
+
+## 一、核心速览
+
+{% if core_insights %}
+{{ core_insights }}
+{% else %}
+*⚠️ 暂无核心速览(AI 服务可能不可用)。*
+{% endif %}
+
+---
+
+## 二、政策风向
+
+**方向**: {% if policy_direction.direction == '扩张' %}🟢 **{{ policy_direction.direction }}**{% elif policy_direction.direction == '收紧' %}🔴 **{{ policy_direction.direction }}**{% else %}🟡 **{{ policy_direction.direction | default('中性') }}**{% endif %} &nbsp;&nbsp; **置信度**: {{ "%.0f"|format((policy_direction.confidence | default(0)) * 100) }}%
+
+**关键政策词**:
+{% for k in policy_direction.keywords | default([]) %}- `{{ k }}`
+{% endfor %}
+
+{% if policy_direction.interpretation %}
+### 📝 解读
+
+{{ policy_direction.interpretation }}
+{% endif %}
+
+---
+
+## 三、重点产业 / 行业动态
+
+{% if industries %}
+{% for ind in industries %}
+### {{ loop.index }}. {{ ind.name }} {% if ind.heat == '高' %}🔥{% elif ind.heat == '中' %}🔸{% else %}🔹{% endif %}
+
+- **热度**: {{ ind.heat }}
+- **涉及文章数**: {{ ind.article_count }} 篇
+- **核心动态**: {{ ind.summary }}
+
+{% endfor %}
+{% else %}
+*⚠️ 暂无重点产业数据。*
+{% endif %}
+
+---
+
+## 四、重点政策出台
+
+{% if policies %}
+{% for p in policies %}
+### {{ loop.index }}. {{ p.title }}
+
+- **发布部门**: {{ p.issuer or '—' }}
+- **主要内容**:
+> {{ p.content }}
+- **来源文章**: {{ p.source_article or '—' }}
+
+{% endfor %}
+{% else %}
+*⚠️ 当日未识别到明确的重点政策出台。*
+{% endif %}
+
+---
+
+## 五、未来发展判断
+
+{% if outlooks %}
+{% for o in outlooks %}
+### {{ loop.index }}. {{ o.topic }} — {% if o.judgment == '支持' %}🟢 支持{% elif o.judgment == '警惕' %}🔴 警惕{% else %}🟡 中性{% endif %}
+
+{{ o.rationale }}
+
+{% endfor %}
+{% else %}
+*⚠️ 暂无未来发展判断。*
+{% endif %}
+
+---
+
+## 六、昨日主题词
+
+| 排名 | 主题词 | 权重 | 解读 |
+|:---:|:---|:---:|:---|
+{% for kw in theme_keywords %}
+| {{ loop.index }} | **{{ kw.word }}** | {{ "%.3f"|format(kw.score) }} | {{ kw.explain }} |
+{% endfor %}
+
+---
+
+## 七、原始文章清单(共 {{ articles | length }} 篇)
+
+{% for art in articles %}
+### {{ loop.index }}. {{ art.title }}
+
+- **来源**: {{ art.source or '—' }}
+- **时间**: {{ art.publish_time or '—' }}
+- **栏目**: {{ art.channel or '—' }}
+- **字数**: {{ art.word_count }} 字
+- **链接**: {{ art.url }}
+
+{% endfor %}
+
+---
+
+<p align="center">
+  <em>本报告由 <a href="https://github.com/<your-username>/people-daily-economy-daily">people-daily-economy-daily</a> 自动生成</em>
+  <br/>
+  数据源 · 人民网财经频道 · 中国经济网 · 仅供研究学习使用
+</p>

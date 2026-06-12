@@ -1,0 +1,158 @@
+[2026-06-12 13:30:57] [INFO] scraper.pipeline — 目标日期: 2026-06-11 (向前回溯 14 天)
+[2026-06-12 13:30:58] [INFO] scraper.pipeline — [列表 1/1] http://finance.people.com.cn/index1.html → 提取 11 个链接
+[2026-06-12 13:30:58] [INFO] scraper.pipeline — 列表去重后: 11 篇
+[2026-06-12 13:30:58] [INFO] scraper.pipeline — 过滤 [/n1/2026/0611/, /n1/2026/0610/, /n1/2026/0609/, /n1/2026/0608/, /n1/2026/0607/, /n1/2026/0606/, /n1/2026/0605/, /n1/2026/0604/, /n1/2026/0603/, /n1/2026/0602/, /n1/2026/0601/, /n1/2026/0531/, /n1/2026/0530/, /n1/2026/0529/] 后: 2 篇
+[2026-06-12 13:31:00] [INFO] scraper.pipeline — [详情 1/2] OK 两部门约谈提醒涉嫌非理性竞争汽车生产企业 (166字)
+[2026-06-12 13:31:02] [INFO] scraper.pipeline — [详情 2/2] OK 夯实基础研究根基 筑牢科技强国建设底座 (2785字)
+[2026-06-12 13:31:02] [INFO] scraper.pipeline — 最终采集: 2 篇
+[2026-06-12 13:31:02] [INFO] nlp.stats — NLP 分析完成: 2 篇, 869 词, 20 关键词, 0 产业命中
+[2026-06-12 13:31:03] [INFO] ai.client — LLM 客户端已初始化: provider=deepseek, model=deepseek-chat, base_url=https://api.deepseek.com/v1
+[2026-06-12 13:31:03] [INFO] ai.analyzer — AI 分析开始(共 6 个任务)
+[2026-06-12 13:31:06] [INFO] ai.analyzer —   [1/6] 主题词: 10 条
+[2026-06-12 13:31:08] [INFO] ai.analyzer —   [2/6] 政策风向: 中性
+[2026-06-12 13:31:10] [INFO] ai.analyzer —   [3/6] 重点产业: 2 个
+[2026-06-12 13:31:12] [INFO] ai.analyzer —   [4/6] 重点政策: 1 条
+[2026-06-12 13:31:14] [INFO] ai.analyzer —   [5/6] 核心信息: 171 字
+[2026-06-12 13:31:17] [INFO] ai.analyzer —   [6/6] 未来判断: 3 条
+[2026-06-12 13:31:17] [INFO] report.archiver — 原始数据已归档: D:\cluade_outpute\people-daily-economy-daily\data\raw\2026-06-11.json
+[2026-06-12 13:31:18] [INFO] nlp.wordcloud_gen — 词云图已保存: D:\cluade_outpute\people-daily-economy-daily\images\wordcloud_2026-06-11.png
+[2026-06-12 13:31:18] [INFO] report.renderer — 报告已生成: D:\cluade_outpute\people-daily-economy-daily\reports\2026-06-11.md (2465 字符)
+[2026-06-12 13:34:59] [WARNING] scraper.fetcher — GET http://www.ce.cn/home/index.shtml 第 1/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/home/index.shtml,等待 2s
+[2026-06-12 13:35:03] [WARNING] scraper.fetcher — GET http://www.ce.cn/home/index.shtml 第 2/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/home/index.shtml,等待 4s
+[2026-06-12 13:35:09] [WARNING] scraper.fetcher — GET http://www.ce.cn/home/index.shtml 第 3/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/home/index.shtml,等待 8s
+[2026-06-12 13:35:21] [WARNING] scraper.fetcher — GET http://www.ce.cn/finance/ 第 1/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/finance/,等待 2s
+[2026-06-12 13:35:25] [WARNING] scraper.fetcher — GET http://www.ce.cn/finance/ 第 2/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/finance/,等待 4s
+[2026-06-12 13:35:31] [WARNING] scraper.fetcher — GET http://www.ce.cn/finance/ 第 3/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/finance/,等待 8s
+[2026-06-12 13:35:41] [WARNING] scraper.fetcher — GET http://www.ce.cn/finance/index.shtml 第 1/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/finance/index.shtml,等待 2s
+[2026-06-12 13:35:46] [WARNING] scraper.fetcher — GET http://www.ce.cn/finance/index.shtml 第 2/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/finance/index.shtml,等待 4s
+[2026-06-12 13:35:52] [WARNING] scraper.fetcher — GET http://www.ce.cn/finance/index.shtml 第 3/3 次失败: 404 Client Error: Not Found for url: http://www.ce.cn/finance/index.shtml,等待 8s
+[2026-06-12 13:41:45] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/ → 0 候选
+[2026-06-12 13:41:47] [INFO] scraper.ce — [ce.cn] http://www.ce.cn/cysc/ → 24 候选
+[2026-06-12 13:41:49] [INFO] scraper.ce — [ce.cn] http://www.ce.cn/cysc/zljd/ → 23 候选
+[2026-06-12 13:41:49] [INFO] scraper.ce — [ce.cn] 去重后: 46 篇
+[2026-06-12 13:41:49] [INFO] scraper.ce — [ce.cn] 2026-06-11 向前 7 天: 0 篇
+[2026-06-12 13:41:49] [INFO] scraper.ce — [ce.cn] 最终采集: 0 篇
+[2026-06-12 13:44:19] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/ → 19 候选
+[2026-06-12 13:44:21] [INFO] scraper.ce — [ce.cn] http://www.ce.cn/cysc/ → 24 候选
+[2026-06-12 13:44:24] [INFO] scraper.ce — [ce.cn] http://www.ce.cn/cysc/zljd/ → 29 候选
+[2026-06-12 13:44:24] [INFO] scraper.ce — [ce.cn] 去重后: 71 篇
+[2026-06-12 13:44:24] [INFO] scraper.ce — [ce.cn] 2026-06-11 向前 7 天: 1 篇
+[2026-06-12 13:44:26] [INFO] scraper.ce — [ce.cn 详情 1/1] OK 优化营商环境，更需在个案中见真章 (1405字)
+[2026-06-12 13:44:26] [INFO] scraper.ce — [ce.cn] 最终采集: 1 篇
+[2026-06-12 13:45:23] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/ → 19 候选
+[2026-06-12 13:45:26] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/rolling/index.shtml → 0 候选
+[2026-06-12 13:45:28] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/bank12/scroll/ → 0 候选
+[2026-06-12 13:45:30] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/stock/gsgdbd/ → 0 候选
+[2026-06-12 13:45:32] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/jjpd/jjpdgd/ → 0 候选
+[2026-06-12 13:45:32] [INFO] scraper.ce — [ce.cn] 去重后: 19 篇
+[2026-06-12 13:45:32] [INFO] scraper.ce — [ce.cn] 2026-06-11 向前 7 天: 0 篇
+[2026-06-12 13:45:32] [INFO] scraper.ce — [ce.cn] 最终采集: 0 篇
+[2026-06-12 13:46:27] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/ → 19 候选
+[2026-06-12 13:46:27] [INFO] scraper.ce — [ce.cn] 去重后: 19 篇
+[2026-06-12 13:46:27] [INFO] scraper.ce — [ce.cn] 2026-06-11 向前 7 天: 0 篇
+[2026-06-12 13:46:27] [INFO] scraper.ce — [ce.cn] 最终采集: 0 篇
+[2026-06-12 13:47:55] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/ → 19 候选
+[2026-06-12 13:47:55] [INFO] scraper.ce — [ce.cn] 去重后: 19 篇
+[2026-06-12 13:47:55] [INFO] scraper.ce — [ce.cn] 2026-06-12 向前 3 天: 19 篇
+[2026-06-12 13:47:57] [INFO] scraper.ce — [ce.cn 详情 1/19] OK 市场出清提速 今年以来20家A股公司退市或锁定退市 (2199字)
+[2026-06-12 13:47:59] [INFO] scraper.ce — [ce.cn 详情 2/19] OK A股指数体系迈向精细化 年内新增374条指数 (2224字)
+[2026-06-12 13:48:01] [INFO] scraper.ce — [ce.cn 详情 3/19] OK 公募基金探索多元“相处之道” (2343字)
+[2026-06-12 13:48:03] [INFO] scraper.ce — [ce.cn 详情 4/19] OK 金刚石散热：“概念炒作”还是“量产前夜” (3413字)
+[2026-06-12 13:48:05] [INFO] scraper.ce — [ce.cn 详情 5/19] OK 银行专项贷强力支持 上市公司频频回购股份 (1918字)
+[2026-06-12 13:48:07] [INFO] scraper.ce — [ce.cn 详情 6/19] OK 科技股引领A股震荡 机构称市场调整的时间和空间均有限 (2749字)
+[2026-06-12 13:48:10] [INFO] scraper.ce — [ce.cn 详情 7/19] OK 超百家村镇银行“消失” 中小银行风险化解加速 (1792字)
+[2026-06-12 13:48:12] [INFO] scraper.ce — [ce.cn 详情 8/19] OK 数据资产化提速 数据保险站上风口 (1247字)
+[2026-06-12 13:48:14] [INFO] scraper.ce — [ce.cn 详情 9/19] OK 二季度以来 银行理财规模企稳回升 (1107字)
+[2026-06-12 13:48:16] [INFO] scraper.ce — [ce.cn 详情 10/19] OK 今日视点：券商市值管理内涵正深刻转变 (1297字)
+[2026-06-12 13:48:18] [INFO] scraper.ce — [ce.cn 详情 11/19] OK 上市公司批量调整锁价定增方案 投资逻辑转向“看成色” (2706字)
+[2026-06-12 13:48:20] [INFO] scraper.ce — [ce.cn 详情 12/19] OK 汇率避险“工具箱”再扩容 小币种产品密集落地 (1569字)
+[2026-06-12 13:48:22] [INFO] scraper.ce — [ce.cn 详情 13/19] OK “含科量”持续提升 沪深300等多个宽基指数样本调整 (987字)
+[2026-06-12 13:48:24] [INFO] scraper.ce — [ce.cn 详情 14/19] OK 午评：三大指数早盘集体上涨 贵金属板块领涨 (157字)
+[2026-06-12 13:48:26] [INFO] scraper.ce — [ce.cn 详情 15/19] OK 魅视科技实控人方拟套现1.13亿元 2022年上市募5.43 (716字)
+[2026-06-12 13:48:28] [INFO] scraper.ce — [ce.cn 详情 16/19] OK 晶丰明源实控人方拟套现5.5亿 扣非亏3年后去年0.18亿 (1472字)
+[2026-06-12 13:48:30] [INFO] scraper.ce — [ce.cn 详情 17/19] OK 航天环宇实控人等拟套现2.2亿 正拟定增募不超15.5亿 (1055字)
+[2026-06-12 13:48:32] [INFO] scraper.ce — [ce.cn 详情 18/19] OK 人民币对美元中间价报6.8109 调升41个基点 (543字)
+[2026-06-12 13:48:34] [INFO] scraper.ce — [ce.cn 详情 19/19] OK 世纪数码过会：今年IPO过关第87家 东方证券过2单 (3137字)
+[2026-06-12 13:48:34] [INFO] scraper.ce — [ce.cn] 最终采集: 19 篇
+[2026-06-12 13:55:15] [INFO] scraper.multi_source — [multi] 启动人民网源 ...
+[2026-06-12 13:55:15] [INFO] scraper.pipeline — 目标日期: 2026-06-11 (向前回溯 2 天)
+[2026-06-12 13:55:15] [INFO] scraper.pipeline — [列表 1/1] http://finance.people.com.cn/index1.html → 提取 11 个链接
+[2026-06-12 13:55:15] [INFO] scraper.pipeline — 列表去重后: 11 篇
+[2026-06-12 13:55:15] [INFO] scraper.pipeline — 过滤 [/n1/2026/0611/, /n1/2026/0610/] 后: 1 篇
+[2026-06-12 13:55:17] [INFO] scraper.pipeline — [详情 1/1] OK 两部门约谈提醒涉嫌非理性竞争汽车生产企业 (166字)
+[2026-06-12 13:55:17] [INFO] scraper.pipeline — 最终采集: 1 篇
+[2026-06-12 13:55:17] [INFO] scraper.multi_source — [multi] 人民网贡献 1 篇,累计 1 篇
+[2026-06-12 13:55:17] [INFO] scraper.multi_source — [multi] 启动中国经济网源 ...
+[2026-06-12 13:55:19] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/ → 19 候选
+[2026-06-12 13:55:19] [INFO] scraper.ce — [ce.cn] 去重后: 19 篇
+[2026-06-12 13:55:19] [INFO] scraper.ce — [ce.cn] 2026-06-11 向前 2 天: 0 篇
+[2026-06-12 13:55:19] [INFO] scraper.ce — [ce.cn] 最终采集: 0 篇
+[2026-06-12 13:55:19] [INFO] scraper.multi_source — [multi] 中国经济网贡献 0 篇,累计 1 篇
+[2026-06-12 13:55:19] [INFO] scraper.multi_source — [multi] 合并去重后: 1 篇
+[2026-06-12 13:55:19] [INFO] nlp.stats — NLP 分析完成: 1 篇, 47 词, 20 关键词, 0 产业命中
+[2026-06-12 13:55:19] [INFO] ai.client — LLM 客户端已初始化: provider=deepseek, model=deepseek-chat, base_url=https://api.deepseek.com/v1
+[2026-06-12 13:55:19] [INFO] ai.analyzer — AI 分析开始(共 6 个任务)
+[2026-06-12 13:55:23] [INFO] ai.analyzer —   [1/6] 主题词: 10 条
+[2026-06-12 13:55:25] [INFO] ai.analyzer —   [2/6] 政策风向: 中性
+[2026-06-12 13:55:26] [INFO] ai.analyzer —   [3/6] 重点产业: 1 个
+[2026-06-12 13:55:28] [INFO] ai.analyzer —   [4/6] 重点政策: 1 条
+[2026-06-12 13:55:30] [INFO] ai.analyzer —   [5/6] 核心信息: 115 字
+[2026-06-12 13:55:32] [INFO] ai.analyzer —   [6/6] 未来判断: 1 条
+[2026-06-12 13:55:32] [INFO] report.archiver — 原始数据已归档: D:\cluade_outpute\people-daily-economy-daily\data\raw\2026-06-11.json
+[2026-06-12 13:55:33] [INFO] nlp.wordcloud_gen — 词云图已保存: D:\cluade_outpute\people-daily-economy-daily\images\wordcloud_2026-06-11.png
+[2026-06-12 13:55:33] [INFO] report.renderer — 报告已生成: D:\cluade_outpute\people-daily-economy-daily\reports\2026-06-11.md (1931 字符)
+[2026-06-12 13:56:39] [INFO] scraper.multi_source — [multi] 启动人民网源 ...
+[2026-06-12 13:56:39] [INFO] scraper.pipeline — 目标日期: 2026-06-12 (向前回溯 2 天)
+[2026-06-12 13:56:39] [INFO] scraper.pipeline — [列表 1/1] http://finance.people.com.cn/index1.html → 提取 11 个链接
+[2026-06-12 13:56:39] [INFO] scraper.pipeline — 列表去重后: 11 篇
+[2026-06-12 13:56:39] [INFO] scraper.pipeline — 过滤 [/n1/2026/0612/, /n1/2026/0611/] 后: 10 篇
+[2026-06-12 13:56:41] [INFO] scraper.pipeline — [详情 1/10] OK 两部门约谈提醒涉嫌非理性竞争汽车生产企业 (166字)
+[2026-06-12 13:56:43] [INFO] scraper.pipeline — [详情 2/10] OK 二季度以来 银行理财规模企稳回升 (1099字)
+[2026-06-12 13:56:45] [INFO] scraper.pipeline — [详情 3/10] OK 商圈如何接住世界杯流量？ (2273字)
+[2026-06-12 13:56:47] [INFO] scraper.pipeline — [详情 4/10] OK 电商营销乱象亟须整治 (809字)
+[2026-06-12 13:56:50] [INFO] scraper.pipeline — [详情 5/10] OK 长江黄金水道扩能带来新机遇 (1350字)
+[2026-06-12 13:56:52] [INFO] scraper.pipeline — [详情 6/10] OK 给黑土地做体检，施肥更精细（经济聚焦·农田里的新鲜事） (2171字)
+[2026-06-12 13:56:54] [INFO] scraper.pipeline — [详情 7/10] OK 江苏探索科技成果高效转化应用新途径 (1537字)
+[2026-06-12 13:56:56] [INFO] scraper.pipeline — [详情 8/10] OK 锂同位素高精度原位检测成功实现 (439字)
+[2026-06-12 13:56:58] [INFO] scraper.pipeline — [详情 9/10] OK AI正深度融入数学研究核心环节 (1902字)
+[2026-06-12 13:57:00] [INFO] scraper.pipeline — [详情 10/10] OK 让世界看见中国的科学浪漫 (1139字)
+[2026-06-12 13:57:00] [INFO] scraper.pipeline — 最终采集: 10 篇
+[2026-06-12 13:57:00] [INFO] scraper.multi_source — [multi] 人民网贡献 10 篇,累计 10 篇
+[2026-06-12 13:57:00] [INFO] scraper.multi_source — [multi] 启动中国经济网源 ...
+[2026-06-12 13:57:02] [INFO] scraper.ce — [ce.cn] http://finance.ce.cn/ → 19 候选
+[2026-06-12 13:57:02] [INFO] scraper.ce — [ce.cn] 去重后: 19 篇
+[2026-06-12 13:57:02] [INFO] scraper.ce — [ce.cn] 2026-06-12 向前 2 天: 19 篇
+[2026-06-12 13:57:04] [INFO] scraper.ce — [ce.cn 详情 1/19] OK 市场出清提速 今年以来20家A股公司退市或锁定退市 (2199字)
+[2026-06-12 13:57:06] [INFO] scraper.ce — [ce.cn 详情 2/19] OK A股指数体系迈向精细化 年内新增374条指数 (2224字)
+[2026-06-12 13:57:08] [INFO] scraper.ce — [ce.cn 详情 3/19] OK 公募基金探索多元“相处之道” (2343字)
+[2026-06-12 13:57:10] [INFO] scraper.ce — [ce.cn 详情 4/19] OK 金刚石散热：“概念炒作”还是“量产前夜” (3413字)
+[2026-06-12 13:57:12] [INFO] scraper.ce — [ce.cn 详情 5/19] OK 银行专项贷强力支持 上市公司频频回购股份 (1918字)
+[2026-06-12 13:57:14] [INFO] scraper.ce — [ce.cn 详情 6/19] OK 科技股引领A股震荡 机构称市场调整的时间和空间均有限 (2749字)
+[2026-06-12 13:57:16] [INFO] scraper.ce — [ce.cn 详情 7/19] OK 超百家村镇银行“消失” 中小银行风险化解加速 (1792字)
+[2026-06-12 13:57:18] [INFO] scraper.ce — [ce.cn 详情 8/19] OK 数据资产化提速 数据保险站上风口 (1247字)
+[2026-06-12 13:57:20] [INFO] scraper.ce — [ce.cn 详情 9/19] OK 二季度以来 银行理财规模企稳回升 (1107字)
+[2026-06-12 13:57:22] [INFO] scraper.ce — [ce.cn 详情 10/19] OK 今日视点：券商市值管理内涵正深刻转变 (1297字)
+[2026-06-12 13:57:24] [INFO] scraper.ce — [ce.cn 详情 11/19] OK 上市公司批量调整锁价定增方案 投资逻辑转向“看成色” (2706字)
+[2026-06-12 13:57:27] [INFO] scraper.ce — [ce.cn 详情 12/19] OK 汇率避险“工具箱”再扩容 小币种产品密集落地 (1569字)
+[2026-06-12 13:57:29] [INFO] scraper.ce — [ce.cn 详情 13/19] OK “含科量”持续提升 沪深300等多个宽基指数样本调整 (987字)
+[2026-06-12 13:57:31] [INFO] scraper.ce — [ce.cn 详情 14/19] OK 午评：三大指数早盘集体上涨 贵金属板块领涨 (157字)
+[2026-06-12 13:57:33] [INFO] scraper.ce — [ce.cn 详情 15/19] OK 魅视科技实控人方拟套现1.13亿元 2022年上市募5.43 (716字)
+[2026-06-12 13:57:35] [INFO] scraper.ce — [ce.cn 详情 16/19] OK 晶丰明源实控人方拟套现5.5亿 扣非亏3年后去年0.18亿 (1472字)
+[2026-06-12 13:57:37] [INFO] scraper.ce — [ce.cn 详情 17/19] OK 航天环宇实控人等拟套现2.2亿 正拟定增募不超15.5亿 (1055字)
+[2026-06-12 13:57:39] [INFO] scraper.ce — [ce.cn 详情 18/19] OK 人民币对美元中间价报6.8109 调升41个基点 (543字)
+[2026-06-12 13:57:41] [INFO] scraper.ce — [ce.cn 详情 19/19] OK 世纪数码过会：今年IPO过关第87家 东方证券过2单 (3137字)
+[2026-06-12 13:57:41] [INFO] scraper.ce — [ce.cn] 最终采集: 19 篇
+[2026-06-12 13:57:41] [INFO] scraper.multi_source — [multi] 中国经济网贡献 19 篇,累计 29 篇
+[2026-06-12 13:57:41] [INFO] scraper.multi_source — [multi] 合并去重后: 29 篇
+[2026-06-12 13:57:42] [INFO] nlp.stats — NLP 分析完成: 29 篇, 12875 词, 20 关键词, 10 产业命中
+[2026-06-12 13:57:43] [INFO] ai.client — LLM 客户端已初始化: provider=deepseek, model=deepseek-chat, base_url=https://api.deepseek.com/v1
+[2026-06-12 13:57:43] [INFO] ai.analyzer — AI 分析开始(共 6 个任务)
+[2026-06-12 13:57:48] [INFO] ai.analyzer —   [1/6] 主题词: 10 条
+[2026-06-12 13:57:50] [INFO] ai.analyzer —   [2/6] 政策风向: 扩张
+[2026-06-12 13:57:53] [INFO] ai.analyzer —   [3/6] 重点产业: 6 个
+[2026-06-12 13:57:54] [INFO] ai.analyzer —   [4/6] 重点政策: 0 条
+[2026-06-12 13:57:57] [INFO] ai.analyzer —   [5/6] 核心信息: 212 字
+[2026-06-12 13:58:02] [INFO] ai.analyzer —   [6/6] 未来判断: 5 条
+[2026-06-12 13:58:02] [INFO] report.archiver — 原始数据已归档: D:\cluade_outpute\people-daily-economy-daily\data\raw\2026-06-12.json
+[2026-06-12 13:58:02] [INFO] nlp.wordcloud_gen — 词云图已保存: D:\cluade_outpute\people-daily-economy-daily\images\wordcloud_2026-06-12.png
+[2026-06-12 13:58:02] [INFO] report.renderer — 报告已生成: D:\cluade_outpute\people-daily-economy-daily\reports\2026-06-12.md (7784 字符)
