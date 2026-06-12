@@ -176,7 +176,7 @@ people-daily-economy-daily/
 ### 1. 克隆与安装
 
 ```bash
-git clone https://github.com/<your-username>/people-daily-economy-daily.git
+git clone https://github.com/jiayangrui05160031-cmyk/people-daily-economy-daily.git
 cd people-daily-economy-daily
 pip install -r requirements.txt
 ```
