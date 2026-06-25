@@ -1,0 +1,566 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>宏观经济智能驾驶舱 · {{ date }} · v5</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+:root {
+  --bg: #0b1220;
+  --panel: #0d1117;
+  --panel2: #161b22;
+  --border: #21262d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #a371f7;
+  --bull: #7ee787;
+  --bear: #ff7b72;
+  --neutral: #d29922;
+  --shadow: rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  background: var(--bg); color: var(--text);
+  margin: 0; padding: 16px 24px 32px; line-height: 1.55;
+}
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.header h1 { margin: 0; font-size: 22px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px; }
+.meta { color: var(--muted); font-size: 12px; }
+.meta b { color: var(--text); }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 11px; background: var(--panel2); color: var(--accent); margin-left: 6px; border: 1px solid var(--border); }
+
+/* Hero: Signal + Narrative */
+.hero { display: grid; grid-template-columns: 320px 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 1100px) { .hero { grid-template-columns: 1fr; } }
+.signal-card {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--panel2) 100%);
+  border: 1px solid var(--border); border-radius: 10px; padding: 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.signal-action { font-size: 32px; font-weight: 700; letter-spacing: 1px; }
+.action-BUY { color: var(--bull); }
+.action-SELL { color: var(--bear); }
+.action-HOLD { color: var(--neutral); }
+.action-REDUCE { color: #ff9b3d; }
+.signal-score { font-size: 14px; color: var(--muted); }
+.signal-conf { width: 100%; height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+.signal-conf-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.3s; }
+.signal-reasons { font-size: 12px; color: var(--text); }
+.signal-reasons li { padding: 2px 0; }
+.narrative-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+}
+.narrative-card h3 { margin: 0 0 12px; font-size: 14px; color: var(--accent); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.narrative-card .narr-source { font-size: 11px; color: var(--muted); padding: 1px 6px; border: 1px solid var(--border); border-radius: 3px; }
+.narrative-section { margin-bottom: 10px; }
+.narrative-section h4 { margin: 0 0 4px; font-size: 12px; color: var(--accent2); font-weight: 500; }
+.narrative-section p { margin: 0; font-size: 13px; color: var(--text); white-space: pre-wrap; }
+
+/* KPI 卡片 */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.kpi .lbl { color: var(--muted); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi .val { font-size: 22px; font-weight: 600; }
+.kpi .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.kpi.bull .val { color: var(--bull); }
+.kpi.bear .val { color: var(--bear); }
+.kpi.neutral .val { color: var(--neutral); }
+.kpi.accent .val { color: var(--accent); }
+
+/* 通用面板 */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.panel h2 { margin: 0 0 8px; font-size: 13px; color: var(--accent); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.panel h2 .h2-tag { font-size: 10px; color: var(--muted); font-weight: 400; }
+.panel .desc { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+.panel.wide { grid-column: span 2; }
+@media (max-width: 900px) { .panel.wide { grid-column: span 1; } }
+
+img.kg { max-width: 100%; border-radius: 6px; background: var(--panel2); }
+.footer { color: var(--muted); font-size: 11px; text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* Plotly overrides */
+.plotly-chart { min-height: 280px; }
+
+/* Section header */
+.section-title { font-size: 13px; color: var(--muted); margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); letter-spacing: 1px; text-transform: uppercase; }
+.section-title .num { color: var(--accent); font-weight: 600; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>宏观经济智能驾驶舱<span class="tag">v5 · 12 模块</span></h1>
+    <div class="meta">报告日期: <b>{{ date }}</b> · 生成: {{ generated_at }} · 数据: 人民网 + 中国经济网</div>
+  </div>
+  <div class="meta">
+    <a href="index.html" style="color: var(--accent); text-decoration: none;">← 历史索引</a>
+  </div>
+</div>
+
+<!-- HERO: 信号引擎 + 高管简报 -->
+<div class="hero">
+  <div class="signal-card" id="hero-signal">
+    <div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">综合决策信号</div>
+      <div class="signal-action" id="sig-action">—</div>
+      <div class="signal-score" id="sig-score">score: 0.00 · confidence: 0%</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);">置信度</div>
+      <div class="signal-conf"><div class="signal-conf-bar" id="sig-bar" style="width:0%"></div></div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);">核心依据</div>
+      <ul class="signal-reasons" id="sig-reasons"><li>暂无</li></ul>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);">行业信号 (Top)</div>
+      <ul class="signal-reasons" id="sig-industries"><li>暂无</li></ul>
+    </div>
+  </div>
+
+  <div class="narrative-card">
+    <h3>📋 高管策略简报 <span class="narr-source" id="narr-source">—</span></h3>
+    <div id="narr-sections">
+      <div class="meta">暂无简报</div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI 卡片 (8 关键指标) -->
+<div class="kpis" id="kpis"></div>
+
+<!-- 第 1 段: 时间序列 -->
+<div class="section-title"><span class="num">01</span>时序基线 (14 天趋势)</div>
+<div class="grid">
+  <div class="panel"><h2>1. 情绪指数时间线</h2><div class="desc">近 {{ metrics | length }} 天聚合情绪 (0-100)</div><div id="chart-sentiment" class="plotly-chart"></div></div>
+  <div class="panel"><h2>2. 政策倾向时间线</h2><div class="desc">扩张=+1 / 中性=0 / 收紧=-1</div><div id="chart-policy" class="plotly-chart"></div></div>
+  <div class="panel"><h2>3. 注意力熵 vs 头部集中度</h2><div class="desc">熵高=话题分散,头部集中=单一话题</div><div id="chart-attention" class="plotly-chart"></div></div>
+  <div class="panel"><h2>4. 跨日主题词趋势 (Top 5)</h2><div class="desc">Top 5 主题词近 {{ metrics | length }} 天频次</div><div id="chart-keyword-trend" class="plotly-chart"></div></div>
+</div>
+
+<!-- 第 2 段: 前沿模块 -->
+<div class="section-title"><span class="num">02</span>前沿模块 (v5 · 12 模块)</div>
+<div class="grid">
+
+  <div class="panel">
+    <h2>5. 异常检测 (Z-score) <span class="h2-tag">anomaly</span></h2>
+    <div class="desc">|Z|>=1.5 留意, >=2 警告, >=3 危急</div>
+    <div id="chart-anomaly" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>6. 时序预测 (95% 置信带) <span class="h2-tag">forecast</span></h2>
+    <div class="desc">MA + 线性趋势外推次日指标</div>
+    <div id="chart-forecast" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>7. 波动率 / 恐慌指数 <span class="h2-tag">volatility</span></h2>
+    <div class="desc">类 VIX 综合指数 (情绪+政策+行业+事件)</div>
+    <div id="chart-volatility" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>8. 产业-A股联动 <span class="h2-tag">market</span></h2>
+    <div class="desc">当日命中产业的 A 股涨跌幅</div>
+    <div id="chart-market" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>9. 宏观指标走势 <span class="h2-tag">macro</span></h2>
+    <div class="desc">CPI / PMI / PPI / GDP (东方财富 API)</div>
+    <div id="chart-macro" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>10. LDA 主题 (Treemap) <span class="h2-tag">topics</span></h2>
+    <div class="desc">sklearn 主题挖掘 + 主题词 Treemap</div>
+    <div id="chart-topics" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>11. 事件时间线 <span class="h2-tag">events</span></h2>
+    <div class="desc">AI 抽取主谓宾事件 + 强度</div>
+    <div id="chart-events" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>12. RAG 历史相似 <span class="h2-tag">rag</span></h2>
+    <div class="desc">TF-IDF 余弦相似度跨期检索</div>
+    <div id="chart-rag" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>13. 因果 / 政策-市场传导 <span class="h2-tag">causal</span></h2>
+    <div class="desc">事件 → 行业 → A 股传导链</div>
+    <div id="chart-causal" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>14. 多信号决策 (信号源分解) <span class="h2-tag">signal</span></h2>
+    <div class="desc">每个信号源的得分与权重</div>
+    <div id="chart-signal" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>15. 预测准确率回测 <span class="h2-tag">backtest</span></h2>
+    <div class="desc">walk-forward 多步长方向准确率</div>
+    <div id="chart-backtest" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>16. 主题词 Top 15 + 实体 Top 15</h2>
+    <div class="desc">左侧主题词 (蓝=LLM 选定),右侧实体 (按类型着色)</div>
+    <div id="chart-keywords" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>17. 产业热度</h2>
+    <div class="desc">当日产业命中次数,颜色=多空立场</div>
+    <div id="chart-industries" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel wide">
+    <h2>18. 知识图谱 (实体 + 共现)</h2>
+    <div class="desc">节点大小=频次, 颜色深度=PageRank, 边=共现权重</div>
+    {% if today %}
+    <img class="kg" src="{{ kg_image }}" onerror="this.style.display='none'" alt="KG">
+    {% else %}
+    <div class="meta">无图谱数据</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>v5 · AI 前沿决策版 · 12 模块智能驾驶舱</span> · 数据源: 人民网财经 + 中国经济网 · 自动生成 · {{ generated_at }}
+</div>
+
+<script>
+const COLORS = {
+  bull: '#7ee787', bear: '#ff7b72', neutral: '#d29922',
+  accent: '#58a6ff', accent2: '#a371f7', grid: '#21262d', text: '#e6edf3',
+};
+const PLOTLY_LAYOUT_BASE = {
+  paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+  font: { color: COLORS.text, family: 'Microsoft YaHei', size: 11 },
+  margin: { t: 20, r: 16, b: 40, l: 50 },
+  xaxis: { gridcolor: COLORS.grid, linecolor: COLORS.grid },
+  yaxis: { gridcolor: COLORS.grid, linecolor: COLORS.grid },
+  legend: { font: { size: 10 } },
+  height: 300,
+};
+const ADVANCED = {{ advanced_json | safe }};
+
+(function() {
+  // ===== HERO: 信号引擎 =====
+  const sig = ADVANCED.signal;
+  if (sig && sig.action) {
+    document.getElementById('sig-action').textContent = sig.action;
+    document.getElementById('sig-action').className = 'signal-action action-' + sig.action;
+    document.getElementById('sig-score').textContent =
+      `score: ${(sig.score || 0).toFixed(3)} · confidence: ${((sig.confidence || 0) * 100).toFixed(0)}%`;
+    document.getElementById('sig-bar').style.width = ((sig.confidence || 0) * 100) + '%';
+    const reasonsUl = document.getElementById('sig-reasons');
+    if (sig.top_reasons && sig.top_reasons.length) {
+      reasonsUl.innerHTML = sig.top_reasons.slice(0, 5).map(r => `<li>${r}</li>`).join('');
+    }
+    const indUl = document.getElementById('sig-industries');
+    if (sig.industry_signals && sig.industry_signals.length) {
+      indUl.innerHTML = sig.industry_signals.slice(0, 5).map(i =>
+        `<li>${i.industry} · <b>${i.action}</b> (${(i.score||0).toFixed(2)})</li>`).join('');
+    }
+  }
+
+  // ===== HERO: 高管简报 =====
+  const nar = ADVANCED.narrative;
+  if (nar && nar.sections && nar.sections.length) {
+    document.getElementById('narr-source').textContent =
+      nar.generated_by === 'llm' ? '🤖 LLM (' + (nar.model || '?') + ')' : '📝 模板';
+    document.getElementById('narr-sections').innerHTML = nar.sections.map(s => `
+      <div class="narrative-section">
+        <h4>${s.heading}</h4>
+        <p>${(s.body || '').replace(/</g, '&lt;')}</p>
+      </div>`).join('');
+  }
+
+  // ===== KPI 卡片 =====
+  const kpiHtml = [];
+  {% if today %}
+  const t = {{ today | tojson }};
+  if (t) {
+    const items = [
+      { lbl: '情绪指数', val: t.sentiment_index?.toFixed(1) || '?', cls: t.sentiment_index>=60?'bull':(t.sentiment_index<=40?'bear':'neutral'), sub: (t.article_count||0)+' 篇文章' },
+      { lbl: '政策倾向', val: t.policy_stance_score>0.3?'扩张':(t.policy_stance_score<-0.3?'收紧':'中性'), cls: t.policy_stance_score>0.1?'bull':(t.policy_stance_score<-0.1?'bear':'neutral'), sub: '得分 '+(t.policy_stance_score||0).toFixed(2) },
+      { lbl: '注意力熵', val: (t.attention_entropy||0).toFixed(2), cls: 'accent', sub: t.attention_entropy>=0.85?'话题分散':'话题集中' },
+      { lbl: '头部集中', val: (t.attention_top_share||0).toFixed(2), cls: 'accent', sub: 'top10 占比' },
+      { lbl: '恐慌指数', val: ADVANCED.volatility?.index?.toFixed(1) || '?', cls: ADVANCED.volatility?.level==='fear'||ADVANCED.volatility?.level==='extreme_fear'?'bear':'accent', sub: ADVANCED.volatility?.level || '—' },
+      { lbl: '异常风险', val: ADVANCED.anomaly?.overall_risk || '—', cls: ADVANCED.anomaly?.overall_risk==='high'||ADVANCED.anomaly?.overall_risk==='extreme'?'bear':(ADVANCED.anomaly?.overall_risk==='low'?'bull':'neutral'), sub: (ADVANCED.anomaly?.signals||[]).length + ' 项触发' },
+      { lbl: '文章总数', val: t.article_count||0, cls: 'accent', sub: (t.total_words||0) + ' 字' },
+      { lbl: '产业数', val: t.industry_count||0, cls: 'accent', sub: '命中产业' },
+    ];
+    items.forEach(i => {
+      kpiHtml.push(`<div class="kpi ${i.cls}"><div class="lbl">${i.lbl}</div><div class="val">${i.val}</div><div class="sub">${i.sub}</div></div>`);
+    });
+  }
+  {% endif %}
+  document.getElementById('kpis').innerHTML = kpiHtml.join('');
+
+  // ===== 基础 8 图 =====
+  const metrics = {{ metrics_json | safe }};
+  const sortedM = metrics.slice().sort((a,b) => (a.date>b.date?1:-1));
+
+  // 1. 情绪
+  Plotly.newPlot('chart-sentiment', [{
+    type: 'scatter', mode: 'lines+markers',
+    x: sortedM.map(m=>m.date), y: sortedM.map(m=>m.sentiment_index),
+    line: { color: COLORS.accent, width: 2 },
+    marker: { color: sortedM.map(m => m.sentiment_index>=60?COLORS.bull:(m.sentiment_index<=40?COLORS.bear:COLORS.neutral)), size: 7 },
+    fill: 'tozeroy', fillcolor: 'rgba(88,166,255,0.08)',
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {range:[0,100]}) }), {displayModeBar:false});
+
+  // 2. 政策
+  Plotly.newPlot('chart-policy', [{
+    type: 'bar',
+    x: sortedM.map(m=>m.date), y: sortedM.map(m=>m.policy_stance_score),
+    marker: { color: sortedM.map(m => m.policy_stance_score>0.1?COLORS.bull:(m.policy_stance_score<-0.1?COLORS.bear:COLORS.neutral)) },
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {range:[-1.2,1.2]}) }), {displayModeBar:false});
+
+  // 3. 注意力
+  Plotly.newPlot('chart-attention', [
+    { type:'scatter', mode:'lines+markers', x:sortedM.map(m=>m.date), y:sortedM.map(m=>m.attention_entropy), name:'注意力熵', line:{color:COLORS.accent,width:2} },
+    { type:'scatter', mode:'lines+markers', x:sortedM.map(m=>m.date), y:sortedM.map(m=>m.attention_top_share), name:'头部集中', line:{color:COLORS.neutral,width:2} },
+  ], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {range:[0,1.05]}) }), {displayModeBar:false});
+
+  // 4. 主题词趋势
+  const kwSeries = {{ keyword_trend.series | tojson }};
+  Plotly.newPlot('chart-keyword-trend',
+    kwSeries.map(s => ({type:'scatter', mode:'lines+markers', x:s.dates, y:s.values, name:s.name, line:{width:2}, marker:{size:5}})),
+    PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+
+  // 16. 主题词 Top 15
+  const kws = {{ keywords.labels | tojson }};
+  const kwv = {{ keywords["values"] | tojson }};
+  const kwf = {{ keywords["theme_flags"] | tojson }};
+  Plotly.newPlot('chart-keywords', [{
+    type:'bar', orientation:'h', x:kwv, y:kws,
+    marker:{color:kwf.map(f => f?COLORS.accent:'#30363d')},
+    text:kwv, textposition:'outside',
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:{autorange:'reversed', gridcolor:COLORS.grid}, height:400 }), {displayModeBar:false});
+
+  // 17. 产业热度
+  const indLabels = {{ industries.labels | tojson }};
+  const indHits = {{ industries.hits | tojson }};
+  const indStances = {{ industries.stances | tojson }};
+  const indColors = indStances.map(s => s==='利好'?COLORS.bull:(s==='利空'?COLORS.bear:COLORS.neutral));
+  Plotly.newPlot('chart-industries', [{
+    type:'bar', x:indLabels, y:indHits,
+    marker:{color:indColors}, text:indHits, textposition:'outside',
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{tickangle:-30, gridcolor:COLORS.grid}, height:380 }), {displayModeBar:false});
+
+  // ===== 5. 异常 Z-score =====
+  const anom = ADVANCED.anomaly;
+  if (anom && anom.signals && anom.signals.length) {
+    const colors = anom.signals.map(s => s.severity==='critical'?COLORS.bear:(s.severity==='warning'?'#ff9b3d':COLORS.neutral));
+    Plotly.newPlot('chart-anomaly', [{
+      type:'bar', orientation:'h',
+      x:anom.signals.map(s => s.z_score), y:anom.signals.map(s => s.metric),
+      marker:{color:colors},
+      text:anom.signals.map(s => `Z=${(s.z_score||0).toFixed(2)}`), textposition:'outside',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{title:'Z-score', gridcolor:COLORS.grid, zerolinecolor:COLORS.text, zerolinewidth:1}, yaxis:{autorange:'reversed', gridcolor:COLORS.grid} }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-anomaly').innerHTML = '<div class="meta" style="padding:20px">无异常</div>';
+  }
+
+  // ===== 6. 预测 vs 实际 =====
+  const fc = ADVANCED.forecast;
+  if (fc && fc.forecasts && fc.forecasts.length) {
+    const traces = [];
+    sortedM.slice(-14).forEach((m, idx) => {
+      traces.push({
+        type:'scatter', mode:'lines+markers', x: [m.date], y:[m.sentiment_index],
+        marker:{color:COLORS.neutral,size:6}, showlegend:false, hoverinfo:'skip',
+      });
+    });
+    fc.forecasts.forEach(f => {
+      traces.push({
+        type:'scatter', mode:'lines+markers',
+        x: [fc.base_date, fc.target_date], y: [sortedM.length?sortedM[sortedM.length-1].sentiment_index:50, f.predicted],
+        line:{color:COLORS.accent2, width:3, dash:'dot'},
+        marker:{color:COLORS.accent2, size:10, symbol:'diamond'},
+        name: f.metric + ' 预测',
+      });
+      // 置信带
+      traces.push({
+        type:'scatter', mode:'lines',
+        x: [fc.base_date, fc.target_date], y:[sortedM.length?sortedM[sortedM.length-1].sentiment_index:50, f.lower],
+        line:{color:COLORS.accent2, width:0}, showlegend:false, hoverinfo:'skip',
+      });
+      traces.push({
+        type:'scatter', mode:'lines',
+        x: [fc.base_date, fc.target_date], y:[sortedM.length?sortedM[sortedM.length-1].sentiment_index:50, f.upper],
+        line:{color:COLORS.accent2, width:0}, fill:'tonexty', fillcolor:'rgba(163,113,247,0.15)',
+        showlegend:false, hoverinfo:'skip',
+      });
+    });
+    Plotly.newPlot('chart-forecast', traces, PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+  } else {
+    document.getElementById('chart-forecast').innerHTML = '<div class="meta" style="padding:20px">无预测数据</div>';
+  }
+
+  // ===== 7. 波动率 =====
+  const vol = ADVANCED.volatility;
+  if (vol && vol.history && vol.history.length) {
+    const hist = vol.history.slice(-30);
+    Plotly.newPlot('chart-volatility', [
+      { type:'scatter', mode:'lines+markers', x:hist.map(h=>h.date), y:hist.map(h=>h.index),
+        line:{color:COLORS.accent2, width:2}, fill:'tozeroy', fillcolor:'rgba(163,113,247,0.1)',
+        marker:{size:6, color: hist.map(h => h.index>=60?COLORS.bear:(h.index<=30?COLORS.bull:COLORS.neutral))},
+        name:'恐慌指数',
+      },
+      { type:'scatter', mode:'lines', x:[hist[0]?.date, hist[hist.length-1]?.date], y:[50,50],
+        line:{color:COLORS.text, dash:'dot', width:1}, showlegend:false, hoverinfo:'skip' },
+    ], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{range:[0,100]}) }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-volatility').innerHTML = '<div class="meta" style="padding:20px">无波动率数据</div>';
+  }
+
+  // ===== 8. 产业-市场联动 =====
+  const mkt = ADVANCED.market;
+  if (mkt && mkt.industries && mkt.industries.length) {
+    const names = mkt.industries.map(i => i.industry);
+    const pcts = mkt.industries.map(i => (i.avg_pct_change||0)*100);
+    Plotly.newPlot('chart-market', [{
+      type:'bar', x:names, y:pcts,
+      marker:{color: pcts.map(p => p>0?COLORS.bull:(p<0?COLORS.bear:COLORS.neutral))},
+      text:pcts.map(p => (p||0).toFixed(2)+'%'), textposition:'outside',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{title:'涨跌幅%'}), xaxis:{tickangle:-30, gridcolor:COLORS.grid}, height:380 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-market').innerHTML = '<div class="meta" style="padding:20px">非交易时段或无市场数据</div>';
+  }
+
+  // ===== 9. 宏观指标 =====
+  const macro = ADVANCED.macro;
+  if (macro && macro.indicators && macro.indicators.length) {
+    const traces = macro.indicators.slice(0, 5).map(ind => ({
+      type:'scatter', mode:'lines+markers',
+      x: ind.history ? ind.history.map(h => h.date) : [macro.as_of],
+      y: ind.history ? ind.history.map(h => h.value) : [ind.latest],
+      name: ind.name, line:{width:2}, marker:{size:6},
+    }));
+    Plotly.newPlot('chart-macro', traces, PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+  } else {
+    document.getElementById('chart-macro').innerHTML = '<div class="meta" style="padding:20px">无宏观数据</div>';
+  }
+
+  // ===== 10. LDA 主题 Treemap =====
+  const topics = ADVANCED.topics;
+  if (topics && topics.topics && topics.topics.length) {
+    Plotly.newPlot('chart-topics', [{
+      type:'treemap',
+      labels: topics.topics.map(t => t.label + '<br>' + (t.top_words||[]).slice(0,3).join('·')),
+      parents: topics.topics.map(() => ''),
+      values: topics.topics.map(t => Math.max(t.dominance, 0.01)),
+      text: topics.topics.map(t => (t.top_words||[]).slice(0,5).join(' · ')),
+      textinfo: 'label+text',
+      marker: { colorscale: 'Portland', cmid: topics.topics.length/2 },
+    }], PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+  } else {
+    document.getElementById('chart-topics').innerHTML = '<div class="meta" style="padding:20px">无主题数据</div>';
+  }
+
+  // ===== 11. 事件时间线 =====
+  const es = ADVANCED.events_study;
+  if (es && es.events && es.events.length) {
+    Plotly.newPlot('chart-events', [{
+      type:'scatter', mode:'markers',
+      x: es.events.map((e,i) => i+1),
+      y: es.events.map(e => (e.intensity||0)*5),
+      marker:{size: es.events.map(e => Math.max(8, (e.intensity||0)*30)),
+              color: es.events.map(e => (e.intensity||0)>=0.7?COLORS.bear:((e.intensity||0)>=0.4?'#ff9b3d':COLORS.neutral)),
+              line:{color:COLORS.text, width:1}},
+      text: es.events.map(e => `${e.subject||''} ${e.action||''} ${e.object||''}`),
+      hovertemplate: '%{text}<extra>%{y:.1f}</extra>',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{title:'事件序号'}, yaxis:{title:'强度', range:[0,5]}, height:380 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-events').innerHTML = '<div class="meta" style="padding:20px">无事件数据</div>';
+  }
+
+  // ===== 12. RAG 相似度 =====
+  const rag = ADVANCED.rag;
+  if (rag && rag.recalls && rag.recalls.length) {
+    Plotly.newPlot('chart-rag', [{
+      type:'bar',
+      x: rag.recalls.map(r => r.date),
+      y: rag.recalls.map(r => r.score||0),
+      marker:{color: rag.recalls.map(r => r.score>=0.7?COLORS.bull:(r.score>=0.4?COLORS.neutral:COLORS.muted))},
+      text: rag.recalls.map(r => (r.score||0).toFixed(3)), textposition:'outside',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{range:[0,1], title:'TF-IDF 余弦相似度'}), height:340 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-rag').innerHTML = '<div class="meta" style="padding:20px">无历史报告可检索</div>';
+  }
+
+  // ===== 13. 因果 Sankey 简化版 =====
+  const caus = ADVANCED.causal;
+  if (caus && caus.chains && caus.chains.length) {
+    const labels = [], sources = [], targets = [], values = [];
+    caus.chains.forEach((c, i) => {
+      labels.push(c.policy, c.mediator, c.market_response);
+      if (i === 0) {
+        sources.push(0, 1);
+        targets.push(1, 2);
+        values.push(c.strength||1, c.strength||1);
+      }
+    });
+    Plotly.newPlot('chart-causal', [{
+      type:'sankey',
+      node:{label:Array.from(new Set(labels)), pad:15, thickness:20,
+            color:[COLORS.accent, COLORS.accent2, COLORS.bull]},
+      link:{source:sources, target:targets, value:values,
+            color:'rgba(88,166,255,0.3)'},
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, {height:340}), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-causal').innerHTML = '<div class="meta" style="padding:20px">无因果分析结果</div>';
+  }
+
+  // ===== 14. 多信号分解 =====
+  if (sig && sig.signals && sig.signals.length) {
+    Plotly.newPlot('chart-signal', [
+      { type:'bar', x: sig.signals.map(s => s.score * (s.weight||0.1)),
+        y: sig.signals.map(s => s.name),
+        orientation:'h',
+        marker:{color: sig.signals.map(s => s.score>0?COLORS.bull:(s.score<0?COLORS.bear:COLORS.neutral))},
+        text: sig.signals.map(s => (s.score*(s.weight||0.1)).toFixed(3)),
+        textposition:'outside',
+      },
+    ], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{title:'score × weight', gridcolor:COLORS.grid}, yaxis:{autorange:'reversed', gridcolor:COLORS.grid}, height:380 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-signal').innerHTML = '<div class="meta" style="padding:20px">无信号源</div>';
+  }
+
+  // ===== 15. 回测 =====
+  const bt = ADVANCED.backtest;
+  if (bt && bt.horizon_reports && bt.horizon_reports.length) {
+    const traces = [
+      { type:'bar', x: bt.horizon_reports.map(h=>h.horizon+'天'), y: bt.horizon_reports.map(h=>h.direction_accuracy*100),
+        marker:{color: COLORS.bull}, name:'方向准确率%', yaxis:'y' },
+      { type:'scatter', mode:'lines+markers', x: bt.horizon_reports.map(h=>h.horizon+'天'), y: bt.horizon_reports.map(h=>h.mae),
+        marker:{color:COLORS.bear, size:10}, name:'MAE', yaxis:'y2' },
+    ];
+    Plotly.newPlot('chart-backtest', traces, Object.assign({}, PLOTLY_LAYOUT_BASE, {
+      yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{title:'方向准确率%', range:[0,100]}),
+      yaxis2:{title:'MAE', overlaying:'y', side:'right', gridcolor:'transparent', color:COLORS.text},
+      height:340,
+    }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-backtest').innerHTML = '<div class="meta" style="padding:20px">无回测数据</div>';
+  }
+})();
+</script>
+</body>
+</html>

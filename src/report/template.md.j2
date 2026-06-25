@@ -1,121 +1,785 @@
-{# 人民日报+中国经济网 · 经济新闻日报模板 ==============================================
-   设计原则:以叙述型分析为主,Markdown 表格作为补充,
-            词云图作为可选附属(用户原话:"我要的是 md 文件,分析和介绍以及解读")。
-#}
-
-# 经济新闻日报 · {{ date }}
-
-> 📅 **报告日期**: {{ date }}
-> 🤖 **生成时间**: {{ generated_at }}
-> 📰 **数据源**: 人民网财经频道 + 中国经济网
-> 📊 **文章总数**: {{ article_count }} 篇(总字数 {{ total_words }} 字)
-> 🧠 **AI 模型**: {{ ai_provider }} / {{ ai_model }}
+# {{ date }} 宏观经济智能分析日报
+> AI 驱动 · {{ article_count }} 篇报道 · {{ total_words }} 词 · 模型 {{ ai_model }} ({{ ai_provider }}) · 生成于 {{ generated_at }}
+>
+> 仪表盘: [{{ dashboard_url }}]({{ dashboard_url }}) · 知识图谱: {% if kg_image %}[KG]({{ kg_image }}){% else %}N/A{% endif %}{% if wordcloud_relpath %} · 词云: [wordcloud]({{ wordcloud_relpath }}){% endif %}
 
 ---
 
-## 一、核心速览
-
-{% if core_insights %}
+## 0. 摘要 (Executive Summary)
 {{ core_insights }}
-{% else %}
-*⚠️ 暂无核心速览(AI 服务可能不可用)。*
-{% endif %}
 
----
+> 政策风向: {{ policy_direction.direction | stance_color }} **{{ policy_direction.direction }}** (置信 {{ policy_direction.confidence | fmt_pct }})
+> 关键词: {% for kw in policy_direction.keywords %}`{{ kw }}`{% if not loop.last %} · {% endif %}{% endfor %}
 
-## 二、政策风向
-
-**方向**: {% if policy_direction.direction == '扩张' %}🟢 **{{ policy_direction.direction }}**{% elif policy_direction.direction == '收紧' %}🔴 **{{ policy_direction.direction }}**{% else %}🟡 **{{ policy_direction.direction | default('中性') }}**{% endif %} &nbsp;&nbsp; **置信度**: {{ "%.0f"|format((policy_direction.confidence | default(0)) * 100) }}%
-
-**关键政策词**:
-{% for k in policy_direction.keywords | default([]) %}- `{{ k }}`
-{% endfor %}
-
-{% if policy_direction.interpretation %}
-### 📝 解读
-
-{{ policy_direction.interpretation }}
-{% endif %}
-
----
-
-## 三、重点产业 / 行业动态
-
-{% if industries %}
-{% for ind in industries %}
-### {{ loop.index }}. {{ ind.name }} {% if ind.heat == '高' %}🔥{% elif ind.heat == '中' %}🔸{% else %}🔹{% endif %}
-
-- **热度**: {{ ind.heat }}
-- **涉及文章数**: {{ ind.article_count }} 篇
-- **核心动态**: {{ ind.summary }}
+{% if advanced and advanced.narrative %}
+### 高管简报 (v5 LLM)
+> 生成方式: `{{ advanced.narrative.generated_by | upper }}`{% if advanced.narrative.model %} (`{{ advanced.narrative.model }}`){% endif %} · 字数 {{ advanced.narrative.word_count }}
+{% for sec in advanced.narrative.sections %}
+**{{ sec.heading }}**: {{ sec.body }}
 
 {% endfor %}
-{% else %}
-*⚠️ 暂无重点产业数据。*
 {% endif %}
 
 ---
 
-## 四、重点政策出台
+## 1. 核心主题词 (Top Themes)
+| 排名 | 关键词 | 评分 | 解释 |
+|:---:|:---|---:|:---|
+{% for k in theme_keywords %}| {{ loop.index }} | `{{ k.word }}` | {{ k.score | fmt_pct }} | {{ k.explain }} |
+{% endfor %}
 
+---
+
+## 2. 政策风向 (Policy Direction)
+- 方向: {{ policy_direction.direction }}
+- 置信度: {{ policy_direction.confidence | fmt_pct }}
+- 关键词: {% for kw in policy_direction.keywords %}`{{ kw }}`{% if not loop.last %}, {% endif %}{% endfor %}
+- 解读: {{ policy_direction.interpretation }}
+
+---
+
+## 3. 产业聚焦 (Industry Focus)
+| 产业 | 热度 | 报道数 | 立场 | 摘要 |
+|:---|:---:|---:|:---:|:---|
+{% for ind in industries %}| {{ ind.name }} | {{ ind.heat | heat_emoji }}{{ ind.heat }} | {{ ind.article_count }} | {{ ind.stance | stance_color }}{{ ind.stance }} | {{ ind.summary | truncate(60) }} |
+{% endfor %}
+
+---
+
+## 4. 重要政策原文 (Policy Digest)
 {% if policies %}
-{% for p in policies %}
-### {{ loop.index }}. {{ p.title }}
-
-- **发布部门**: {{ p.issuer or '—' }}
-- **主要内容**:
-> {{ p.content }}
-- **来源文章**: {{ p.source_article or '—' }}
-
+| 标题 | 发布主体 | 要点 | 来源 |
+|:---|:---|:---|:---|
+{% for p in policies %}| {{ p.title | truncate(30) }} | {{ p.issuer | truncate(15) }} | {{ p.content | truncate(40) }} | {{ p.source_article }} |
 {% endfor %}
 {% else %}
-*⚠️ 当日未识别到明确的重点政策出台。*
+*未提取到当日政策事件。*
 {% endif %}
 
 ---
 
-## 五、未来发展判断
-
-{% if outlooks %}
-{% for o in outlooks %}
-### {{ loop.index }}. {{ o.topic }} — {% if o.judgment == '支持' %}🟢 支持{% elif o.judgment == '警惕' %}🔴 警惕{% else %}🟡 中性{% endif %}
-
-{{ o.rationale }}
-
+## 5. 前景判断 (Outlook)
+| 议题 | 判断 | 理由 |
+|:---|:---:|:---|
+{% for o in outlooks %}| {{ o.topic }} | {{ o.judgment | stance_color }}{{ o.judgment }} | {{ o.rationale | truncate(70) }} |
 {% endfor %}
+
+---
+
+## 6. 情感画像 (Sentiment)
+```
+{{ sentiment_bars }}
+```
+
+| 对象 | 立场 | 强度 | 证据 |
+|:---|:---|---:|:---|
+{% for s in sentiment %}| {{ s.target }} | {{ s.stance | stance_color }}{{ s.stance }} | {{ s.intensity | fmt_pct }} | {{ s.evidence | truncate(40) }} |
+{% endfor %}
+
+---
+
+## 7. 关键事件 (Key Events)
+| 主体 | 动作 | 客体 | 类型 | 影响 |
+|:---|:---|:---|:---|:---|
+{% for e in events %}| {{ e.subject | truncate(15) }} | {{ e.action | truncate(15) }} | {{ e.object | truncate(15) }} | {{ e.event_type }} | {{ e.impact | truncate(30) }} |
+{% endfor %}
+
+---
+
+## 8. 跨报道关联 (Cross-Links)
+{% for c in cross_links %}
+- 聚类 {{ loop.index }}: 关联文章 {{ c.article_indices | length }} 篇 - {{ c.summary | truncate(80) }}
+  - 涉及: 文章 #{{ c.article_indices | join(", #") }}
+{% endfor %}
+{% if not cross_links %}
+*未发现显著的跨报道聚类。*
+{% endif %}
+
+---
+## 9. 量化指标卡 (Quantitative KPIs)
+| 指标 | 数值 | 说明 |
+|:---|---:|:---|
+| 情绪指数 | `{{ metrics.sentiment_index | fmt_num(1) }}` | 0~100, 越高越看多 |
+| 政策倾向 | `{{ metrics.policy_stance_score | fmt_num(3) }}` | -1~+1, 扩张为正 |
+| 注意力熵 | `{{ metrics.attention_entropy | fmt_num(3) }}` | 0~1, 越高主题越分散 |
+| 头部集中度 | `{{ metrics.attention_top_share | fmt_num(3) }}` | Top1 关键词占比 |
+| 产业广度 | `{{ metrics.industry_breadth | fmt_num(3) }}` | 命中产业 / 总产业 |
+| 文章数 | `{{ metrics.article_count }}` | 当日入仓 |
+| 关键词数 | `{{ metrics.unique_keywords }}` | 去重后 |
+
+---
+
+## 10. 跨日对比 (Day-over-Day & Week-over-Week)
+{% if comparison %}
+| 维度 | 数值 | 方向 | 幅度 |
+|:---|---:|:---:|---:|
+| 文章数差异 | `{{ comparison.article_count_diff.value }}` | `{{ comparison.article_count_diff.direction | arrow }}` | `{{ comparison.article_count_diff.pct_diff | fmt_pct }}` |
+| 关键词重叠率 | `{{ comparison.keyword_overlap_pct | fmt_pct }}` | — | — |
+| 新增关键词 | `{{ comparison.new_keywords | length }}` 个 | — | — |
+| 消失关键词 | `{{ comparison.dropped_keywords | length }}` 个 | — | — |
+| 情感变化 | `{{ comparison.sentiment_delta | fmt_num(2) }}` | — | — |
+| 政策倾向变化 | `{{ comparison.policy_delta | fmt_num(3) }}` | — | — |
+| 产业变化 | `{{ comparison.industry_delta | length }}` 个 | — | — |
+| 总结 | `{{ comparison.summary | truncate(60) }}` | — | — |
 {% else %}
-*⚠️ 暂无未来发展判断。*
+*对比数据不足, 跳过。*
 {% endif %}
 
 ---
 
-## 六、昨日主题词
+## 11. 趋势涌现与衰退 (Emerging & Declining Topics)
+{% if trend %}
+| 涌现 🔥 | 持续 ➖ | 衰退 ❄️ |
+|:---|:---|:---|
+{% set max_len = [trend.emerging | length, trend.persistent | length, trend.declining | length] | max %}
+{% for i in range(max_len) %}
+| {% if i < trend.emerging | length %}`{{ trend.emerging[i] }}`{% endif %} | {% if i < trend.persistent | length %}`{{ trend.persistent[i] }}`{% endif %} | {% if i < trend.declining | length %}`{{ trend.declining[i] }}`{% endif %} |
+{% endfor %}
+{% else %}
+*趋势数据不足, 跳过。*
+{% endif %}
 
-| 排名 | 主题词 | 权重 | 解读 |
-|:---:|:---|:---:|:---|
-{% for kw in theme_keywords %}
-| {{ loop.index }} | **{{ kw.word }}** | {{ "%.3f"|format(kw.score) }} | {{ kw.explain }} |
+---
+
+## 12. 知识图谱 (Knowledge Graph)
+{% if kg_image %}
+![KG]({{ kg_image }})
+
+> 图谱基于实体识别 + 共现关系 + PageRank 构建, 节点为政策主体/产业/事件关键词, 边为共现权重。
+{% else %}
+*知识图谱未生成 (--no-kg 或文章不足)。*
+{% endif %}
+
+---
+
+## 13. 产业-A股映射 (Industry → A-Stocks)
+{% if industry_stocks %}
+| 产业 | 相关 A 股 |
+|:---|:---|
+{% for ind, stocks in industry_stocks.items() %}| {{ ind }} | {% for s in stocks %}`{{ s }}`{% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+{% else %}
+*未识别到产业-A股映射。*
+{% endif %}
+
+---
+
+## 14. AI 自评 (Self-Evaluation)
+{% if self_eval %}
+| 维度 | 评分 |
+|:---|---:|
+| 一致性 | `{{ self_eval.consistency | fmt_pct }}` |
+| 依据充分 | `{{ self_eval.groundedness | fmt_pct }}` |
+| 完整度 | `{{ self_eval.completeness | fmt_pct }}` |
+| 综合 | `{{ self_eval.overall | fmt_pct }}` |
+
+> 评语: {{ self_eval.comments }}
+{% else %}
+*AI 自评未运行。*
+{% endif %}
+
+---
+
+## 15. 文章列表 (Article List)
+| # | 标题 | 来源 | 时间 | 字数 |
+|:---:|:---|:---|:---|---:|
+{% for a in articles %}| {{ loop.index }} | [{{ a.title | truncate(40) }}]({{ a.url }}) | {{ a.source }} | {{ a.publish_time }} | {{ a.word_count }} |
 {% endfor %}
 
 ---
 
-## 七、原始文章清单(共 {{ articles | length }} 篇)
+## 16. 异常检测 (Anomaly Detection · v5)
+> Z-score 滚动窗口检测, 30 天基线。
+{% if advanced and advanced.anomaly %}
+**整体风险**: `{{ advanced.anomaly.overall_risk | upper }}` · 窗口: `{{ advanced.anomaly.window_size }}` 天
 
-{% for art in articles %}
-### {{ loop.index }}. {{ art.title }}
+{{ advanced.anomaly.summary }}
 
-- **来源**: {{ art.source or '—' }}
-- **时间**: {{ art.publish_time or '—' }}
-- **栏目**: {{ art.channel or '—' }}
-- **字数**: {{ art.word_count }} 字
-- **链接**: {{ art.url }}
-
+{% if advanced.anomaly.signals %}
+| 指标 | 数值 | 均值 | 标准差 | Z | 方向 | 严重度 |
+|:---|---:|---:|---:|---:|:---|:---|
+{% for s in advanced.anomaly.signals %}| `{{ s.metric }}` | `{{ s.value | fmt_num(2) }}` | `{{ s.mean | fmt_num(2) }}` | `{{ s.std | fmt_num(2) }}` | `{{ s.z_score | fmt_num(2) }}` | {{ s.direction }} | `{{ s.severity | upper }}` |
 {% endfor %}
+{% endif %}
+{% else %}
+*异常检测未运行。*
+{% endif %}
 
 ---
 
-<p align="center">
-  <em>本报告由 <a href="https://github.com/<your-username>/people-daily-economy-daily">people-daily-economy-daily</a> 自动生成</em>
-  <br/>
-  数据源 · 人民网财经频道 · 中国经济网 · 仅供研究学习使用
-</p>
+## 17. 时序预测 (Forecast · v5)
+> 简单移动平均 + 线性趋势, 95% 置信区间。
+{% if advanced and advanced.forecast %}
+**{{ advanced.forecast.headline }}**
+
+| 指标 | 预测 | 下界 | 上界 | 趋势 | 方法 | 置信 |
+|:---|---:|---:|---:|:---|:---|---:|
+{% for f in advanced.forecast.forecasts %}| `{{ f.metric }}` | `{{ f.predicted | fmt_num(2) }}` | `{{ f.lower | fmt_num(2) }}` | `{{ f.upper | fmt_num(2) }}` | {{ f.trend }} | `{{ f.method }}` | `{{ f.confidence | fmt_pct }}` |
+{% endfor %}
+{% else %}
+*预测未运行。*
+{% endif %}
+
+---
+
+## 18. 产业-A股市场联动 (Stock Correlation · v5)
+> 东方财富免费 API 拉取 A 股实时行情, 与新闻情绪做联动分析。
+{% if advanced and advanced.market %}
+**整体**: `{{ advanced.market.market_overall | upper }}`
+{% if advanced.market.note %}
+
+{{ advanced.market.note }}
+{% endif %}
+
+{% if advanced.market.industries %}
+| 产业 | 联动评分 | 上涨家数 | 下跌家数 |
+|:---|---:|---:|---:|
+{% for ind in advanced.market.industries %}| {{ ind.industry }} | `{{ ind.avg_pct_change | fmt_pct }}` | `{{ ind.breadth | fmt_pct }}` | — |
+{% endfor %}
+{% endif %}
+
+**Top 上涨**: {% for s in advanced.market.top_gainers[:5] %}`{{ s.name }}` `{{ s.pct_change | fmt_pct }}`{% if not loop.last %} · {% endif %}{% endfor %}
+
+**Top 下跌**: {% for s in advanced.market.top_losers[:5] %}`{{ s.name }}` `{{ s.pct_change | fmt_pct }}`{% if not loop.last %} · {% endif %}{% endfor %}
+{% else %}
+*市场联动数据不可用。*
+{% endif %}
+
+---
+
+## 19. 宏观指标 (Macro Indicators · v5)
+> CPI/PMI/PPI/GDP + LPR/M2/Shibor, 东方财富 datacenter 实时 + 内置参考表。
+{% if advanced and advanced.macro %}
+{{ advanced.macro.summary }}
+
+{% if advanced.macro.indicators %}
+| 指标 | 最新 | 环比 | 同比 | 趋势 | 信号 | 来源 |
+|:---|---:|:---|:---|:---:|:---|:---|
+{% for ind in advanced.macro.indicators %}| {{ ind.name }} | `{{ ind.latest }}` | `{{ ind.mom }}` | `{{ ind.yoy }}` | `{{ ind.trend | arrow }}` | {{ ind.signal }} | `{{ ind.source }}` |
+{% endfor %}
+{% endif %}
+
+{% if advanced.macro.news_linkage %}
+**新闻主题 ↔ 指标关联**:
+{% for link in advanced.macro.news_linkage %}- 主题 `{{ link.theme_word }}` → 指标 `{{ link.macro_indicator }}` = `{{ link.value }}`
+{% endfor %}
+{% endif %}
+{% else %}
+*宏观指标未运行。*
+{% endif %}
+
+---
+## 20. 主题建模 (Topic Modeling · LDA · v5)
+> sklearn LatentDirichletAllocation 提取潜在话题, 按关键词自动打人类可读标签。
+{% if advanced and advanced.topics %}
+**主题数**: `{{ advanced.topics.n_topics }}` · **文档数**: `{{ advanced.topics.n_docs }}` · **熵**: `{{ advanced.topics.doc_topic_entropy | fmt_num(3) }}`
+
+{{ advanced.topics.summary }}
+
+| ID | 主题标签 | 占比 | 主导产业 | 关键词 (Top 5) |
+|:---:|:---|---:|:---|:---|
+{% for t in advanced.topics.topics %}| {{ t.id }} | **{{ t.label }}** | `{{ t.dominance | fmt_pct }}` | {{ t.dominant_industry or "—" }} | {% for w in t.top_words[:5] %}`{{ w }}`{% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+{% else %}
+*主题建模未运行 (文章不足或数据问题)。*
+{% endif %}
+
+---
+
+## 21. 事件研究 (Event Study · v5)
+> 规则分类 + 强度评分 + 历史同类检索 + 预期影响。
+{% if advanced and advanced.events_study %}
+**历史事件库**: `{{ advanced.events_study.history_size }}` 条 · **当日**: `{{ advanced.events_study.events | length }}` 个
+
+{{ advanced.events_study.summary }}
+
+{% if advanced.events_study.events %}
+| 主体 | 动作 | 客体 | 类别 | 强度 | 预期影响 |
+|:---|:---|:---|:---|---:|:---|
+{% for e in advanced.events_study.events %}| `{{ e.subject | truncate(15) }}` | `{{ e.action | truncate(15) }}` | `{{ e.object | truncate(15) }}` | `{{ e.category }}` | `{{ e.intensity | fmt_pct }}` | {{ e.expected_impact | truncate(40) }} |
+{% endfor %}
+{% endif %}
+
+{% if advanced.events_study.historical %}
+**历史同类事件 (近 90 天)**:
+| 日期 | 类别 | 标题 | 后续 |
+|:---|:---|:---|:---|
+{% for h in advanced.events_study.historical[:5] %}| `{{ h.date }}` | `{{ h.category }}` | `{{ h.title | truncate(30) }}` | `{{ h.outcome | truncate(30) }}` |
+{% endfor %}
+{% endif %}
+{% else %}
+*事件研究未运行。*
+{% endif %}
+
+---
+
+## 22. RAG 历史回放 (RAG History · v5)
+> TF-IDF 余弦相似度检索历史报告 + 后续走势, 给出"今日像历史上哪一天"的判断。
+{% if advanced and advanced.rag %}
+**语料**: `{{ advanced.rag.corpus_size }}` 份历史报告 · **Top 相似度**: `{{ advanced.rag.top_score | fmt_num(3) }}`
+
+{{ advanced.rag.summary }}
+
+{% if advanced.rag.recalls %}
+| 历史日期 | 相似度 | 片段 | 后续 1~7 天 |
+|:---|---:|:---|:---|
+{% for r in advanced.rag.recalls %}| `{{ r.date }}` | `{{ r.score | fmt_num(3) }}` | `{{ r.snippet | truncate(50) }}` | {{ r.followup | truncate(50) }} |
+{% endfor %}
+{% endif %}
+{% else %}
+*RAG 未运行 (历史报告不足)。*
+{% endif %}
+
+---
+
+## 23. 波动率指数 (Volatility · v5)
+> 类 VIX 合成: 0.35×情绪波动 + 0.25×政策波动 + 0.20×行业活跃 + 0.20×事件密度, 归一化 0~100。
+{% if advanced and advanced.volatility %}
+**指数**: `{{ advanced.volatility.index | fmt_num(1) }}` · **等级**: `{{ advanced.volatility.level | upper }}` · **7日均**: `{{ advanced.volatility.ma7 | fmt_num(1) }}`
+
+{{ advanced.volatility.summary }}
+
+| 组件 | 数值 |
+|:---|---:|
+| 情绪波动 | `{{ advanced.volatility.components.sentiment_vol | fmt_num(3) }}` |
+| 政策波动 | `{{ advanced.volatility.components.policy_vol | fmt_num(3) }}` |
+| 行业活跃 | `{{ advanced.volatility.components.industry_vol | fmt_num(3) }}` |
+| 事件密度 | `{{ advanced.volatility.components.event_density | fmt_num(3) }}` |
+
+{% if advanced.volatility.history %}
+**近 14 日走势**:
+{% for h in advanced.volatility.history %}`{{ h.date }}`: `{{ h.index | fmt_num(1) }}`{% if not loop.last %} → {% endif %}{% endfor %}
+{% endif %}
+{% else %}
+*波动率未运行。*
+{% endif %}
+
+---
+
+## 24. 因果传导链 (Causal Chains · v5)
+> 政策 → 行业关联分析, 查历史同类政策 + 行业反应 (近 90 天)。
+{% if advanced and advanced.causal %}
+**置信度**: `{{ advanced.causal.confidence | fmt_pct }}`
+
+{{ advanced.causal.summary }}
+
+{% if advanced.causal.chains %}
+| 政策 | 类别 | 中介 (产业) | 市场反应 | 强度 | 滞后期 | 样本 |
+|:---|:---|:---|:---|---:|---:|---:|
+{% for ch in advanced.causal.chains %}| `{{ ch.policy | truncate(25) }}` | `{{ ch.category }}` | `{{ ch.mediator }}` | `{{ ch.market_response | truncate(25) }}` | `{{ ch.strength | fmt_num(2) }}` | `{{ ch.lag_days }}d` | `{{ ch.sample_size }}` |
+{% endfor %}
+{% endif %}
+{% else %}
+*因果分析未运行。*
+{% endif %}
+
+---
+
+## 25. 多信号决策引擎 (Signal Engine · v5)
+> 8 个子信号加权和, 决策阈值 [-0.3, +0.3] 分四档 (BUY/HOLD/REDUCE/SELL)。
+{% if advanced and advanced.signal %}
+**决策**: `{{ advanced.signal.action | upper }}` · **分**: `{{ advanced.signal.score | fmt_num(3) }}` · **置信**: `{{ advanced.signal.confidence | fmt_pct }}`
+
+{{ advanced.signal.summary }}
+
+| 信号 | 分 | 权重 | 方向 | 理由 |
+|:---|---:|---:|:---|:---|
+{% for s in advanced.signal.signals %}| `{{ s.name }}` | `{{ s.score | fmt_num(3) }}` | `{{ s.weight | fmt_num(2) }}` | `{{ s.direction }}` | {{ s.reason | truncate(40) }} |
+{% endfor %}
+
+**Top 理由**: {% for r in advanced.signal.top_reasons[:5] %}{{ r }}{% if not loop.last %} · {% endif %}{% endfor %}
+
+**风险**: {% for r in advanced.signal.risks %}{{ r }}{% if not loop.last %} · {% endif %}{% endfor %}
+
+{% if advanced.signal.industry_signals %}
+**行业子信号**:
+| 行业 | 分 | 动作 | 驱动 |
+|:---|---:|:---|:---|
+{% for i in advanced.signal.industry_signals %}| `{{ i.industry }}` | `{{ i.score | fmt_num(3) }}` | `{{ i.action }}` | {% for d in i.drivers %}{{ d }}{% if not loop.last %}, {% endif %}{% endfor %} |
+{% endfor %}
+{% endif %}
+{% else %}
+*决策引擎未运行。*
+{% endif %}
+
+---
+
+## 26. 预测回测 (Forecast Backtest · v5)
+> walk-forward 验证, 按预测步长 (1/3/7 天) 分桶, 报告 MAE / 方向准确率 / 置信区间覆盖率。
+{% if advanced and advanced.backtest %}
+{{ advanced.backtest.summary }}
+
+{% if advanced.backtest.horizon_reports %}
+| 步长 (天) | 样本 | MAE | RMSE | 偏差 | 方向准确率 | 区间覆盖率 |
+|:---:|---:|---:|---:|---:|---:|---:|
+{% for h in advanced.backtest.horizon_reports %}| `{{ h.horizon }}` | `{{ h.n }}` | `{{ h.mae | fmt_num(2) }}` | `{{ h.rmse | fmt_num(2) }}` | `{{ h.bias | fmt_num(2) }}` | `{{ h.direction_accuracy | fmt_pct }}` | `{{ h.band_coverage | fmt_pct }}` |
+{% endfor %}
+{% endif %}
+
+{% if advanced.backtest.cases %}
+**最近 5 个回测 case**:
+| 日期 | 预测 | 实际 | 误差 | 方向 | 区间内 |
+|:---|---:|---:|---:|:---:|:---:|
+{% for c in advanced.backtest.cases[-5:] %}| `{{ c.target_date }}` | `{{ c.predicted | fmt_num(1) }}` | `{{ c.actual | fmt_num(1) }}` | `{{ c.abs_error | fmt_num(1) }}` | {{ "✓" if c.direction_correct else "✗" }} | {{ "✓" if c.in_band else "✗" }} |
+{% endfor %}
+{% endif %}
+{% else %}
+*回测未运行。*
+{% endif %}
+
+---
+## 27. 风险指标体系 (Risk Metrics · v6)
+> 全套风险管理指标: 夏普 / 索提诺 / 最大回撤 / 卡玛 / VaR / CVaR / 偏度 / 峰度 (近 90 天)。
+{% if advanced and advanced.risk %}
+**风险等级**: `{{ advanced.risk.risk_level | upper }}` · **样本**: `{{ advanced.risk.n }}` 天
+
+{{ advanced.risk.summary }}
+
+| 维度 | 数值 |
+|:---|---:|
+| 年化收益 | `{{ advanced.risk.annualized_return | fmt_pct }}` |
+| 年化波动 | `{{ advanced.risk.annualized_vol | fmt_pct }}` |
+| 夏普比率 | `{{ advanced.risk.sharpe_ratio | fmt_num(2) }}` |
+| 索提诺比率 | `{{ advanced.risk.sortino_ratio | fmt_num(2) }}` |
+| 卡玛比率 | `{{ advanced.risk.calmar_ratio | fmt_num(2) }}` |
+| 最大回撤 | `{{ advanced.risk.max_drawdown | fmt_pct }}` ({{ advanced.risk.max_dd_duration_days }} 天) |
+| VaR 95% | `{{ advanced.risk.var_95 | fmt_pct }}` |
+| VaR 99% | `{{ advanced.risk.var_99 | fmt_pct }}` |
+| CVaR 95% | `{{ advanced.risk.expected_shortfall_95 | fmt_pct }}` |
+| 偏度 | `{{ advanced.risk.skewness | fmt_num(2) }}` |
+| 峰度 | `{{ advanced.risk.kurtosis | fmt_num(2) }}` |
+| 正/负日 | `{{ advanced.risk.positive_days }}` / `{{ advanced.risk.negative_days }}` |
+
+| 捕获率 | 数值 |
+|:---|---:|
+| 上行捕获 | `{{ advanced.risk.upside_capture | fmt_pct }}` |
+| 下行捕获 | `{{ advanced.risk.downside_capture | fmt_pct }}` |
+{% else %}
+*风险指标未运行 (数据不足)。*
+{% endif %}
+
+---
+
+## 28. 行业组合回测 (Portfolio Backtest · v6)
+> 行业权重 + weekly 调仓 + 90 天回测, 与等权基准比较 (alpha/beta/IR)。
+{% if advanced and advanced.portfolio %}
+**组合**: {% for k, v in advanced.portfolio.portfolio.items() %}`{{ k }}`={{ (v * 100) | fmt_num(1) }}%{% if not loop.last %}, {% endif %}{% endfor %} · **调仓**: `{{ advanced.portfolio.rebalance }}`
+
+{{ advanced.portfolio.summary }}
+
+| 指标 | 组合 | 基准 |
+|:---|---:|---:|
+| 累计收益 | `{{ advanced.portfolio.cumulative_return | fmt_pct }}` | `{{ advanced.portfolio.benchmark_cumulative_return | fmt_pct }}` |
+| 年化收益 | `{{ advanced.portfolio.annualized_return | fmt_pct }}` | — |
+| 年化波动 | `{{ advanced.portfolio.annualized_vol | fmt_pct }}` | — |
+| 夏普比率 | `{{ advanced.portfolio.sharpe_ratio | fmt_num(2) }}` | — |
+| 最大回撤 | `{{ advanced.portfolio.max_drawdown | fmt_pct }}` | — |
+| Alpha | `{{ advanced.portfolio.alpha | fmt_num(4) }}` | — |
+| Beta | `{{ advanced.portfolio.beta | fmt_num(2) }}` | — |
+| 信息比率 | `{{ advanced.portfolio.information_ratio | fmt_num(2) }}` | — |
+
+| 行业 | 权重 | 累计收益 |
+|:---|---:|---:|
+{% for ind in advanced.portfolio.industry_returns %}| `{{ ind.industry }}` | `{{ (ind.weight * 100) | fmt_num(1) }}%` | `{{ ind.cumulative_return | fmt_pct }}` |
+{% endfor %}
+{% else %}
+*组合回测未运行。*
+{% endif %}
+
+---
+
+## 29. 情景分析 (Scenario · v6)
+> 蒙特卡洛压力测试: 500 次模拟未来 30 天走势, 输出概率分布。
+{% if advanced and advanced.scenario %}
+**情景**: `{{ advanced.scenario.scenario_name }}` · **模拟**: `{{ advanced.scenario.n_sims }}` 次 · **视野**: `{{ advanced.scenario.horizon_days }}` 天
+
+{{ advanced.scenario.summary }}
+
+| 指标 | 数值 |
+|:---|---:|
+| P(正向) | `{{ advanced.scenario.p_positive | fmt_pct }}` |
+| 中位终值 | `{{ advanced.scenario.median_final | fmt_num(2) }}` |
+| 均值终值 | `{{ advanced.scenario.mean_final | fmt_num(2) }}` |
+| 5% 分位 | `{{ advanced.scenario.percentile_5 | fmt_num(2) }}` |
+| 95% 分位 | `{{ advanced.scenario.percentile_95 | fmt_num(2) }}` |
+| 中位总收益 | `{{ advanced.scenario.median_total_return | fmt_pct }}` |
+| 中位最大回撤 | `{{ advanced.scenario.median_max_dd | fmt_pct }}` |
+| P(回撤>10%) | `{{ advanced.scenario.p_dd_gt_10pct | fmt_pct }}` |
+| P(回撤>20%) | `{{ advanced.scenario.p_dd_gt_20pct | fmt_pct }}` |
+| 最坏情况 | `{{ advanced.scenario.worst_case_final | fmt_num(2) }}` |
+| 最好情况 | `{{ advanced.scenario.best_case_final | fmt_num(2) }}` |
+{% else %}
+*情景分析未运行。*
+{% endif %}
+
+---
+
+## 30. AI 智能问答 (QA Assistant · v6)
+> RAG over 历史报告 + 时序数据 + LLM 回答, 自动生成引用来源。
+{% if advanced and advanced.qa %}
+**问题**: {{ advanced.qa.question }}
+
+**生成方式**: `{{ advanced.qa.generated_by | upper }}`{% if advanced.qa.model %} (`{{ advanced.qa.model }}`){% endif %} · **置信**: `{{ advanced.qa.confidence | fmt_pct }}`
+
+### 回答
+{{ advanced.qa.answer }}
+
+{% if advanced.qa.citations %}
+### 引用来源 ({{ advanced.qa.citations | length }})
+| # | 来源 | 日期 | 相似度 | 片段 |
+|:---:|:---|:---|---:|:---|
+{% for c in advanced.qa.citations %}| {{ loop.index }} | `{{ c.source | truncate(30) }}` | `{{ c.date }}` | `{{ c.score | fmt_num(3) }}` | `{{ c.snippet | truncate(40) }}` |
+{% endfor %}
+{% endif %}
+
+{{ advanced.qa.summary }}
+{% else %}
+*问答未运行。*
+{% endif %}
+
+---
+
+## 31. Embedding 向量 RAG (Vector RAG · v6)
+> 句子嵌入 (BGE / text2vec / TF-IDF) 检索, 语义相似度优于关键词匹配。
+{% if advanced and advanced.qa and advanced.qa.context_dates %}
+**上下文日期**: `{{ advanced.qa.context_dates | length }}` 天
+
+```
+{{ advanced.qa.context_dates | join(", ") }}
+```
+{% else %}
+*Embedding RAG 后端未启用或返回空。*
+{% endif %}
+
+---
+## 32. 多智能体辩论 (Multi-Agent Debate · v7)
+> 4 位顾问 (鹰/鸽/量化/务实) 2 轮辩论 + LLM Judge 仲裁。
+{% if advanced and advanced.council_debate %}
+**问题**: {{ advanced.council_debate.question }} · **轮次**: {{ advanced.council_debate.rounds | length }} · **LLM 调用**: {{ advanced.council_debate.used_llm_rounds }} · **立场演化**: {{ advanced.council_debate.stance_evolution | join(" → ") }} · **用时**: {{ (advanced.council_debate.total_latency_ms / 1000) | fmt_num(1) }}s
+
+### LLM Judge 最终裁决
+| 维度 | 数值 |
+|:---|:---|
+| 最终立场 | `{{ advanced.council_debate.final.final_stance | upper }}` |
+| 置信度 | `{{ advanced.council_debate.final.final_confidence | fmt_pct }}` |
+| 共识度 | `{{ advanced.council_debate.final.consensus | fmt_pct }}` |
+| 生成方式 | `{{ advanced.council_debate.final.generated_by | upper }}`{% if advanced.council_debate.final.model %} (`{{ advanced.council_debate.final.model }}`){% endif %} |
+
+**推理**: {{ advanced.council_debate.final.reasoning }}
+
+{% if advanced.council_debate.final.key_risks %}
+**关键风险**:
+{% for r in advanced.council_debate.final.key_risks %}- {{ r }}
+{% endfor %}
+{% endif %}
+{% if advanced.council_debate.final.key_opportunities %}
+**核心机会**:
+{% for o in advanced.council_debate.final.key_opportunities %}- {{ o }}
+{% endfor %}
+{% endif %}
+{% if advanced.council_debate.final.dissent %}
+**反对意见**:
+{% for dd in advanced.council_debate.final.dissent %}- {{ dd }}
+{% endfor %}
+{% endif %}
+
+### 各轮立场
+{% for rd in advanced.council_debate.rounds %}
+**第 {{ rd.round_no }} 轮** (共识 {{ rd.consensus_level | fmt_pct }}, {{ rd.elapsed_ms | fmt_num(0) }}ms):
+| 顾问 | 立场 | 置信 | 推理 |
+|:---|:---|---:|:---|
+{% for o in rd.opinions %}| {{ o.persona }} | `{{ o.stance | upper }}` | {{ o.confidence | fmt_pct }} | {{ o.reasoning[:60] }}... |
+{% endfor %}
+{% endfor %}
+{% else %}
+*多智能体辩论未运行。*
+{% endif %}
+
+---
+
+## 33. SHAP 特征贡献度解释 (Explainable AI · v7)
+> SHAP 风格加性特征归因: final_score = Σ (weight_i × score_i) - baseline。
+{% if advanced and advanced.shap %}
+**决策**: `{{ advanced.shap.final_action | upper }}` · 分 `{{ advanced.shap.final_score | fmt_num(3) }}` · 置信 `{{ advanced.shap.final_confidence | fmt_pct }}` · 基线 `{{ advanced.shap.base_score | fmt_num(3) }}`
+
+**主导信号**: 推高 `{{ advanced.shap.top_positive or "N/A" }}` · 拉低 `{{ advanced.shap.top_negative or "N/A" }}`
+
+| 特征 | 权重 | 今日分 | 历史基线 | 贡献 | 方向 |
+|:---|---:|---:|---:|---:|:---|
+{% for c in advanced.shap.contributions %}| `{{ c.feature }}` | `{{ c.weight | fmt_num(3) }}` | `{{ c.score | fmt_num(3) }}` | `{{ c.baseline | fmt_num(3) }}` | `{{ c.contribution | fmt_num(3) }}` | {% if c.direction == "push_up" %}推高{% elif c.direction == "push_down" %}拉低{% else %}中性{% endif %} |
+{% endfor %}
+
+> {{ advanced.shap.summary }}
+{% else %}
+*SHAP 解释未运行。*
+{% endif %}
+
+---
+
+
+## 34. 量化多因子模型 (Multi-Factor Model · v8)
+> 学术级 5 因子 (动量/价值/质量/波动/规模) Fama-French + Barra 风格打分, 含 IC/Rank IC/Quintile 分层回测。
+{% if advanced and advanced.factor_model %}
+**综合评分**: `{{ advanced.factor_model.total_score | fmt_num(3) }}` · **评级**: `{{ advanced.factor_model.total_rank }}` · **样本**: `{{ advanced.factor_model.n_periods }}` 天
+
+{{ advanced.factor_model.summary }}
+
+| 因子 | 暴露 (z) | 贡献 | IC | Rank IC | 描述 |
+|:---|---:|---:|---:|---:|:---|
+{% for f in advanced.factor_model.factors %}| `{{ f.factor }}` | `{{ f.exposure | fmt_num(3) }}` | `{{ f.contribution | fmt_num(4) }}` | `{{ f.ic | fmt_num(2) }}` | `{{ f.rank_ic | fmt_num(2) }}` | {{ f.description }} |
+{% endfor %}
+
+**分层回测 (Quintile)**:
+| 分层 | 平均收益 |
+|:---|---:|
+{% for k, v in advanced.factor_model.quintile_returns.items() %}| {{ k }} | `{{ v | fmt_pct }}` |
+{% endfor %}
+
+**Long-Short 价差**: `{{ advanced.factor_model.long_short_spread | fmt_pct }}` (按动量因子 Q5-Q1)
+{% else %}
+*多因子模型未运行 (时序数据不足)。*
+{% endif %}
+
+---
+
+## 35. 增强时序预测 (Enhanced Forecast · v8)
+> Holt-Winters 三参数指数平滑 + 自适应周期检测 (5/7/14/30) + 蒙特卡洛 95% 区间。
+{% if advanced and advanced.forecast_enhanced %}
+**指标**: `{{ advanced.forecast_enhanced.target_metric }}` · **方法**: `{{ advanced.forecast_enhanced.method_selected }}` · **周期**: `{{ advanced.forecast_enhanced.seasonality_period }}` 天
+**in-sample**: MAE `{{ advanced.forecast_enhanced.in_sample_mae | fmt_num(2) }}` · MAPE `{{ advanced.forecast_enhanced.in_sample_mape | fmt_num(1) }}%`
+**模型参数**: α=`{{ advanced.forecast_enhanced.model_params.alpha }}` β=`{{ advanced.forecast_enhanced.model_params.beta }}` γ=`{{ advanced.forecast_enhanced.model_params.gamma }}`
+
+{{ advanced.forecast_enhanced.summary }}
+
+| 视野 | 预测 | 下界 | 上界 | 趋势 | 置信 | 季节项 |
+|:---:|---:|---:|---:|:---|---:|---:|
+{% for h in advanced.forecast_enhanced.horizons %}| {{ h.horizon }} 天 | `{{ h.predicted | fmt_num(2) }}` | `{{ h.lower | fmt_num(2) }}` | `{{ h.upper | fmt_num(2) }}` | {{ h.trend }} | `{{ h.confidence | fmt_pct }}` | `{{ h.seasonal_component | fmt_num(2) }}` |
+{% endfor %}
+{% else %}
+*时序预测 v8 未运行。*
+{% endif %}
+
+---
+
+## 36. 政策 PDF 深度解析 (Policy PDF Parser · v8)
+> pdfplumber 文本提取 + 正则字段识别 + 立场判定 + 条款切分 + 可选 LLM 增强。
+{% if advanced and advanced.policy_pdf %}
+**文件**: `{{ advanced.policy_pdf.source_path }}` · **页数**: `{{ advanced.policy_pdf.total_pages }}` · **字符数**: `{{ advanced.policy_pdf.total_chars }}`
+
+**标题**: {{ advanced.policy_pdf.title }}
+**发布机构**: {{ advanced.policy_pdf.issuer or "(未识别)" }}
+**文号**: {{ advanced.policy_pdf.doc_number or "(无)" }}
+**发布日期**: {{ advanced.policy_pdf.publish_date or "(未识别)" }}
+**生效日期**: {{ advanced.policy_pdf.effective_date or "(未识别)" }}
+**总立场**: `{{ advanced.policy_pdf.overall_stance }}` (置信 {{ advanced.policy_pdf.confidence | fmt_pct }})
+**资金规模**: {{ advanced.policy_pdf.amount_total or "(未识别)" }}
+**涉及产业**: {% for ind in advanced.policy_pdf.industries_mentioned %}`{{ ind }}`{% if not loop.last %}, {% endif %}{% endfor %}
+**解析方式**: `{{ advanced.policy_pdf.parse_method }}`
+
+{{ advanced.policy_pdf.summary }}
+
+| # | 条款 | 立场 | 置信 | 行业 | 金额 |
+|:---:|:---|:---|---:|:---|:---|
+{% for c in advanced.policy_pdf.clauses[:10] %}| {{ loop.index }} | {{ c.text | truncate(60) }} | {{ c.stance }} | {{ c.confidence | fmt_pct }} | {% for i in c.industries %}`{{ i }}`{% if not loop.last %}, {% endif %}{% endfor %} | {{ c.amount or "—" }} |
+{% endfor %}
+
+{% if advanced.policy_pdf.parse_warnings %}
+**警告**: {% for w in advanced.policy_pdf.parse_warnings %}`{{ w }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+{% else %}
+*政策 PDF 未运行 (data/policy_pdfs/ 目录无 PDF 或解析失败)。*
+{% endif %}
+
+---
+
+
+
+
+---
+
+## 37. Embedding 向量库 + 语义检索 (Vector RAG · v9)
+{% if advanced and advanced.v9 and advanced.v9.embeddings %}
+**后端**: `{{ advanced.v9.embeddings.backend }}` · **索引**: `{{ advanced.v9.embeddings.index_size }}` 篇 · **查询**: `{{ advanced.v9.embeddings.query }}` · **命中**: `{{ advanced.v9.embeddings.n_hits }}` 条 · **Top-1 相似度**: `{{ advanced.v9.embeddings.top_hit_score | fmt_num(3) }}`
+
+| # | 相似度 | 摘要 |
+|:---:|---:|:---|
+{% for h in advanced.v9.embeddings.hits %}| {{ loop.index }} | `{{ h.score | fmt_num(3) }}` | {{ h.snippet }} |
+{% endfor %}
+{% else %}
+*Embedding 向量库未运行 (无文章或后端不可用)。*
+{% endif %}
+
+---
+
+## 38. Hamilton 区制检测 (Market Regime · v9)
+{% if advanced and advanced.v9 and advanced.v9.regime %}
+**当前区制**: `{{ advanced.v9.regime.current_regime | upper }}` · **p(calm)**: `{{ advanced.v9.regime.current_p_calm | fmt_num(3) }}` · **p(euphoric)**: `{{ advanced.v9.regime.current_p_euphoric | fmt_num(3) }}`
+**收敛**: `{{ advanced.v9.regime.converged }}` · **EM 迭代**: `{{ advanced.v9.regime.n_iter }}` · **对数似然**: `{{ advanced.v9.regime.log_likelihood | fmt_num(2) }}` · **观测数**: `{{ advanced.v9.regime.n_obs }}`
+**状态均值**: calm=`{{ advanced.v9.regime.state_means[0] | fmt_num(3) }}` / euphoric=`{{ advanced.v9.regime.state_means[1] | fmt_num(3) }}`
+**转移概率**: calm->calm=`{{ advanced.v9.regime.transition_matrix[0][0] | fmt_num(3) }}` / calm->euphoric=`{{ advanced.v9.regime.transition_matrix[0][1] | fmt_num(3) }}`
+**平均持续天数**: calm `{{ advanced.v9.regime.avg_sojourn_calm | fmt_num(1) }}` 天 / euphoric `{{ advanced.v9.regime.avg_sojourn_euphoric | fmt_num(1) }}` 天
+**历史区制分布**: calm `{{ (advanced.v9.regime.regime_distribution.calm * 100) | fmt_num(1) }}%` / euphoric `{{ (advanced.v9.regime.regime_distribution.euphoric * 100) | fmt_num(1) }}%`
+**信号**: 方向=`{{ advanced.v9.regime.signal_direction }}` · 分=`{{ advanced.v9.regime.signal_score | fmt_num(3) }}` · {{ advanced.v9.regime.signal_reason }}
+{% else %}
+*Hamilton 区制未运行 (数据不足 6 天)。*
+{% endif %}
+
+---
+
+## 39. GraphRAG 知识图谱 (GraphRAG-lite · v9)
+{% if advanced and advanced.v9 and advanced.v9.graph_rag %}
+**节点**: `{{ advanced.v9.graph_rag.n_nodes }}` · **边**: `{{ advanced.v9.graph_rag.n_edges }}` · **社区**: `{{ advanced.v9.graph_rag.n_communities }}` · **模块度**: `{{ advanced.v9.graph_rag.modularity | fmt_num(3) }}` · **生成方式**: `{{ advanced.v9.graph_rag.global_generated_by | upper }}`
+
+**全局摘要** (来自 {{ advanced.v9.graph_rag.global_generated_by }}):
+{{ advanced.v9.graph_rag.global_summary }}
+
+{% if advanced.v9.graph_rag.communities %}
+| 社区 | 节点 | 标签 | 摘要 |
+|:---:|---:|:---|:---|
+{% for c in advanced.v9.graph_rag.communities[:6] %}| #{{ c.community_id }} | {{ c.node_count }} | {{ c.label }} | {{ c.summary | truncate(80) }} |
+{% endfor %}
+{% endif %}
+
+{% if advanced.v9.graph_rag.qa_answer %}
+**问答** (问题: {{ advanced.v9.graph_rag.qa_question }}): {{ advanced.v9.graph_rag.qa_answer }}
+{% endif %}
+{% else %}
+*GraphRAG 未运行 (无文章或图谱为空)。*
+{% endif %}
+
+---
+
+## 40. ReAct 智能体 (ReAct Agent · v9)
+{% if advanced and advanced.v9 and advanced.v9.agent %}
+**问题**: {{ advanced.v9.agent.question }} · **步数**: {{ advanced.v9.agent.n_steps }} · **工具调用**: {{ advanced.v9.agent.n_tool_calls }} · **生成方式**: `{{ advanced.v9.agent.generated_by | upper }}` · **用时**: {{ advanced.v9.agent.elapsed_ms }}ms
+
+**最终答案**: {{ advanced.v9.agent.answer }}
+
+{% if advanced.v9.agent.steps %}
+**推理轨迹**:
+{% for s in advanced.v9.agent.steps %}
+- **Step {{ s.step }}** · 动作: `{{ s.action }}`{% if s.action_input %} · 输入: `{{ s.action_input | tojson }}`{% endif %}
+  - 观察: {{ s.observation | truncate(120) }}
+{% endfor %}
+{% endif %}
+{% else %}
+*ReAct Agent 未运行。*
+{% endif %}
+
+## 附录 · 模块清单 (Module Inventory)
+
+**v5 前沿分析 (12 模块)**: 异常 · 预测 · 市场联动 · 宏观指标 · 主题模型 · 事件研究 · RAG · 波动率 · 因果 · 决策 · 回测 · 简报
+
+**v6 工程化 (4 模块)**: 风险指标 · 组合回测 · 情景分析 · 智能问答
+
+**v7 前沿 AI (2 模块)**: 多智能体辩论 · SHAP 解释
+
+**v8 前沿量化 (3 模块)**: 量化多因子模型 (Fama-French + Barra) · 增强时序预测 (Holt-Winters + STL + 蒙特卡洛) · 政策 PDF 解析 (pdfplumber + LLM)
+
+**v9 前沿 AI 深度 (4 模块)**: Embedding 向量 RAG (OpenAI / Transformers / Hash 三后端) · Hamilton 区制检测 (MS-AR(0) + EM + Kim smoother) · GraphRAG 知识图谱 (community detection + LLM 摘要) · ReAct 智能体 (function-calling + 7 工具)
+
+**v6 基础设施**: FastAPI 38 路由 · WebSocket 告警 · SSE 流式 · Prometheus 观测 · 4 智能体辩论 (鹰/鸽/量化/务实) · LLM Judge · SHAP 特征归因 · Embedding 向量 RAG (3 后端) · AI 驱动爬虫 (3 模式) · Docker / CI
+
+---
+
+*本报告由 `{{ ai_provider }}` / `{{ ai_model }}` 自动生成于 {{ generated_at }} · 引擎 v9*

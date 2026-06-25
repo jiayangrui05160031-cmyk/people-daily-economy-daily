@@ -1,0 +1,76 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ===== 虚拟环境 =====
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ===== Jupyter =====
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# ===== 环境变量(API Key 等敏感信息) =====
+.env
+.env.local
+.env.*.local
+
+# ===== 大文件与缓存 =====
+*.xlsx
+*.zip
+*.7z
+*.parquet
+*.pkl
+*.feather
+*.h5
+*.tar.gz
+data/processed/*.pkl
+data/processed/*.feather
+data/raw/*.json.bak
+data/cache/
+data/historical/*.sqlite3*
+
+# ===== 报告产物(可选提交,默认保留以便历史归档) =====
+# 如不希望提交历史报告,可取消下一行注释
+# reports/*.md
+
+# ===== 测试临时文件 =====
+test_*.py
+*.bak
+*.tmp
+*.log
+logs/
+
+# ===== v9 增量: 排除爬取数据/产物图/临时脚本/notebook =====
+data/raw/*.json
+images/*.png
+images/*.jpg
+images/*.svg
+reports/*.html
+reports/*.md
+scripts/_probe_*.py
+scripts/verify_selectors.py
+notebooks/*.ipynb
+
+# 临时: workflow scope 未授权, 见 push log
+.github/workflows/*.yml

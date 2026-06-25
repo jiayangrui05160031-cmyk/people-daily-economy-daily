@@ -1,309 +1,372 @@
-# people-daily-economy-daily
-# 人民日报 + 中国经济网 · 经济新闻每日热点报告
+# <span lang="zh-CN">宏观经济智能分析平台</span> · Macro Intelligence Daily · v9
+
+> **From 31-section markdown reports to a self-driving macro cockpit — vector RAG, Hamilton regime switching, GraphRAG and a ReAct agent, all in one Python pipeline.**
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://www.python.org/)
-[![Requests](https://img.shields.io/badge/Requests-2.31%2B-2C7BB6?logo=python)](https://requests.readthedocs.io/)
-[![Jieba](https://img.shields.io/badge/Jieba-0.42%2B-orange)](https://github.com/fxsjy/jieba)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![AI Compatible](https://img.shields.io/badge/AI-OpenAI%20Compatible-purple)](https://platform.openai.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Modules](https://img.shields.io/badge/分析模块-24%20前沿-orange)](#-项目结构)
+[![FastAPI](https://img.shields.io/badge/FastAPI-v9-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ed?logo=docker)](Dockerfile)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088ff?logo=github-actions)](.github/workflows/ci.yml)
+[![LLM](https://img.shields.io/badge/LLM-OpenAI%20compatible-7c3aed)](https://platform.openai.com/docs/api-reference/embeddings)
+[![Data: 人民网 + 中国经济网](https://img.shields.io/badge/Data-人民网%20%7C%20中国经济网-c71f1f)](#-项目结构)
 
-> 基于 **Requests + BeautifulSoup + Jieba + LLM** 的每日经济新闻采集与分析系统 · 数据源: 人民网财经频道 + 中国经济网 · 输出: 6 维度结构化热点报告 (Markdown)
-
----
-
-## ⚠️ 第一步:配置 AI API Key(必读)
-
-本项目使用大语言模型(LLM)做政策与产业解读,**必须配置 API Key 才能生成完整报告**。
-
-### 快速配置(2 分钟)
-
-```bash
-# 1. 复制模板
-cp .env.example .env
-
-# 2. 编辑 .env,填入你的 Key
-# AI_API_KEY=sk-your-real-key-here
-```
-
-### 推荐 Provider(国内可用 + 便宜)
-
-| Provider | 模型 | Base URL | 价格 | 备注 |
-|---|---|---|---|---|
-| **DeepSeek** ⭐推荐 | `deepseek-chat` | `https://api.deepseek.com/v1` | ¥1/百万 token | 国内访问,中文优秀 |
-| 通义千问 Qwen | `qwen-plus` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 中 | 阿里云,稳定 |
-| OpenAI | `gpt-4o-mini` | `https://api.openai.com/v1` | 中 | 需代理 |
-| Claude | `claude-3-5-sonnet` | (使用 anthropic SDK) | 高 | 需代理 |
-
-`.env` 文件已自动被 `.gitignore` 排除,**不会被提交到 GitHub**。
-
-### 不配置 Key 也能跑
-
-```bash
-# 跳过 AI,降级为纯 NLP 报告(关键词 + 词频)
-python main.py --skip-ai
-```
-
-详见下方 [💼 AI 接口选择](#-ai-接口选择)。
+每日自动抓取 *人民网财经* 与 *中国经济网* 的宏观新闻 → 跑通 24 个分析模块 → 输出 **31 节结构化报告 + 现代化驾驶舱 + FastAPI REST + 多智能体 + ReAct Agent**,并把每一份产物落盘为可追溯的 Markdown / HTML / SQLite 时序库。
 
 ---
 
 ## 📑 目录
 
-- [🎯 项目背景](#-项目背景)
-- [📰 报告样例](#-报告样例)
-- [🛠️ 技术栈](#️-技术栈)
-- [📁 项目结构](#-项目结构)
+- [⚡ v9 相对前版更新了什么](#-v9-相对前版更新了什么)
+- [✨ 主要能力](#-主要能力)
+- [🏗️ 架构总览](#️-架构总览)
 - [🚀 快速开始](#-快速开始)
-- [🔬 分析流程](#-分析流程)
-- [🧩 核心模块](#-核心模块)
-- [💼 AI 接口选择](#-ai-接口选择)
-- [📈 输出示例](#-输出示例)
+- [🔑 配置你的 API Key](#-配置你的-api-key)
+- [🧪 烟测与一键运行](#-烟测与一键运行)
+- [🐳 Docker 部署](#-docker-部署)
+- [🌐 REST API 速览](#-rest-api-速览)
+- [🖥️ 仪表盘与样例报告](#-仪表盘与样例报告)
+- [🧩 项目结构](#-项目结构)
+- [🛠️ 技术栈](#️-技术栈)
 - [❓ 常见问题](#-常见问题)
-- [📝 License](#-license)
+- [🤝 贡献与许可证](#-贡献与许可证)
 
 ---
 
-## 🎯 项目背景
+## ⚡ v9 相对前版更新了什么
 
-经济新闻是观察政策风向和产业趋势的"窗口"。**《人民日报》** 作为党中央机关报,其经济新闻报道具有最高权威性与风向标意义。
+> v9 在不臃肿的前提下,把"信号 → 决策 → 解释 → 行动"这条链路彻底打通:向量化语义检索、隐马尔可夫区制、知识图谱、ReAct Agent 第一次同时进入主流程。
 
-本项目每天自动:
+| 维度 | v1–v4 (基础) | v5 (NLP + 信号) | v6 (金融工程) | v8 (多因子 + PDF) | **v9 (前沿 AI 量化)** |
+|---|---|---|---|---|---|
+| 抓取源 | 人民网 | + 中国经济网 | 同 v5 | + 新华 / 央行 可选 | 同 v8 |
+| 分析模块 | 6 | 12 | 16 | 19 | **24** |
+| AI 维度 | 7 | 10 | 10 | 10 | **10 + LLM-as-Judge** |
+| 报告章节 | 14 | 22 | 27 | 31 | **31 + 区制 / Agent / GraphRAG** |
+| 仪表盘 | 8 图 | 18 面板 | 18 面板 | 18 面板 | **22 面板 + 多 Tab + SSE** |
+| 决策引擎 | — | BUY/HOLD/REDUCE/SELL | + SHAP | + 多因子 | **+ ReAct Agent** |
+| 风险 | — | Sharpe/VaR/CVaR | + 8 类 | + 区制 | **+ Hamilton 1989 隐马尔可夫 + 95% 后验** |
+| 组合 | — | 行业权重 + 4 调仓 | + 多因子 | + A/B/C/D/E 评级 | **+ 因子归因** |
+| 情景 | — | 蒙特卡洛 + 7 情景 | + STL+AR | — | **+ 区制条件蒙特卡洛** |
+| 智能问答 | — | RAG + LLM | + embed_rag | — | **+ 向量 RAG (Transformer)** |
+| **向量嵌入** | — | TF-IDF | TF-IDF | TF-IDF | **🆕 BERT / Hash 向量 + 余弦检索** |
+| **区制切换** | — | — | — | — | **🆕 Hamilton MS-AR (冷静 / 狂热)** |
+| **GraphRAG** | — | — | — | — | **🆕 Louvain 社区 + 层级摘要** |
+| **ReAct Agent** | — | — | — | — | **🆕 工具调用 Agent (无 LangChain 依赖)** |
+| **LLM 评测** | — | self_eval | self_eval | self_eval | **🆕 多 Judge × 多维打分** |
+| **REST 端点** | — | — | 22 | 22 | **30+ + SSE 流** |
+| **驾驶舱** | — | Plotly 静态 | Plotly 静态 | Plotly 静态 | **🆕 多 Tab + SSE + D3 知识图谱** |
+| **Docker / CI** | — | — | ✅ | ✅ | **✅ 镜像 ~280 MB** |
 
-1. **采集** 人民网财经频道最近 N 天的经济新闻(每天约 11 篇置顶,通过 `--days N` 控制回溯天数,默认 7 天)
-2. **分析** 通过 jieba 分词 + TF-IDF/TextRank 提取主题词
-3. **解读** 通过 LLM(Claude/OpenAI/DeepSeek/Qwen)提炼政策与产业洞察
-4. **归档** 输出 6 维度结构化报告,提交至 GitHub 形成历史时间序列
+### v9 新增的 5 个前沿模块
 
-> ⚠️ **数据源特性**: 人民网财经主列表单日仅展示 ~11 篇置顶新闻(其中当天 9 篇 + 前几天 2 篇),且 `index1-5` 内容完全相同。因此本项目设计为**多日回溯**(默认 7 天)以保证日报内容丰富度,而非严格"前一天"。可通过 `--days N` 自定义。
+- **🧠 `analysis/embeddings.py`** — 中文向量嵌入引擎 (兼容 OpenAI Embedding API),numpy 余弦检索,取代 TF-IDF 的"词汇鸿沟"问题,支持语义级 RAG。带 hash fallback,断网 / 无 HF 权重也能跑。
+- **📊 `analysis/regime.py`** — Hamilton (1989) 马尔可夫区制切换 (2 状态: CALM / HOT),纯 numpy 实现,带 EM 估计、平滑后验概率,给市场状态打"冷静 / 狂热"标签。
+- **🔍 `analysis/graph_rag.py`** — GraphRAG-lite: 从文章 / 实体 / 关系建图,Louvain 社区发现 + LLM 层级摘要,回答跨文章全局问题 (例如"过去一个月政策主线是什么?")。
+- **⚖️ `analysis/llm_judge.py`** — LLM-as-Judge 多维质量评估 (一致性 / 有据性 / 完整性 / 可行动性 / 新颖性),多 Judge 投票,出报告前先自评。
+- **🤖 `agent/react_agent.py`** — ReAct 风格 LLM Agent (无 LangChain 依赖),工具集: 信号引擎 / 多因子 / 风险 / 问答 / RAG / 区制 / 情景。给出"思考 → 行动 → 观察"三段式推理。
 
-**业务价值**:
-- **投资者**: 每周 5 分钟速览宏观政策与产业风向
-- **研究者**: 长期归档形成中国政策话语语料库
-- **求职者**: 本项目展示 **数据采集 → NLP 处理 → LLM 工程化 → 报告自动化** 完整能力链
+### v9 工程化提升
+
+- **🌐 现代化驾驶舱 v9** — 多 Tab 导航 (总览 / 信号 / 因子 / 知识图谱 / 问答 / 区制 / 比较),SSE 实时心跳,深色主题 + 渐变卡片。
+- **📡 30+ REST 端点** — `/v9/regime` · `/v9/embeddings/search` · `/v9/graphrag/ask` · `/v9/judge` · `/v9/agent/run` · `/v9/stream/*`。
+- **🧬 向量化语义搜索** — TF-IDF → 语义向量,跨期主题匹配更准。
+- **🔬 多维质量门控** — 4 个 Judge (政策 / 产业 / 市场 / 战略) × 5 维度,出报告前先自评。
 
 ---
 
-## 📰 报告样例
+## ✨ 主要能力
 
-> 自动生成的每日报告示例(详见 `reports/2026-06-11.md`):
-
-```markdown
-# 人民日报经济新闻日报 · 2026-06-11
-
-> 自动生成 · 基于 47 篇昨日经济新闻
-
-## 📌 核心速览
-昨日经济新闻聚焦"新质生产力"与"扩大内需"两大主线,涉及...
-
-## 🔥 昨日主题词
-| 排名 | 主题词 | 权重 |
-|---|---|---|
-| 1   | 新质生产力 | 0.087 |
-| 2   | 扩大内需 | 0.076 |
-| 3   | 数字经济 | 0.068 |
-...
-
-## 🌬️ 政策风向
-🟢 **温和扩张** — 关键词: 降准预期、消费券、设备更新
+```text
+[人民网 + 中国经济网] → [反爬 + 质量过滤 + 语义去重] → [NLP (jieba + TF-IDF + 语义向量)]
+                                                                       ↓
+[31 节 Markdown 报告]  ← [LLM 反思循环] ← [10 维 LLM 分析 (并发)]
+        ↓                                       ↓
+[智能驾驶舱仪表盘]                    [24 模块 → SQLite 时序库]
+        ↓
+[FastAPI REST]  [多智能体顾问团]  [ReAct Agent]  [SHAP 解释]
+        ↓
+[Prometheus 指标]  [Docker]  [GitHub Actions CI]
 ```
 
----
-
-## 🛠️ 技术栈
-
-| 类别 | 工具 | 用途 |
-|---|---|---|
-| **爬虫** | requests + BeautifulSoup + lxml | HTML 采集与解析 |
-| **限速** | time.sleep + retry | 反爬友好 |
-| **中文 NLP** | jieba + scikit-learn | 分词 / TF-IDF / TextRank |
-| **可视化** | wordcloud + matplotlib | 词云图生成 |
-| **AI 推理** | openai SDK (兼容协议) | DeepSeek / Qwen / OpenAI / Claude |
-| **报告** | Jinja2 | Markdown 模板渲染 |
-| **配置** | python-dotenv | .env 管理 API Key |
-| **打包** | argparse | CLI 入口 |
+- 📰 **多源爬虫** — 人民网 + 中国经济网,可选新华网 / 央行;智能反爬 + 质量过滤 + 语义去重。
+- 🧠 **10 维 AI 分析** — 主题词 / 政策 / 产业 / 洞察 / 判断 / 立场 / 事件 / 聚类 / 自评 + LLM 反思循环。
+- 📊 **24 个前沿模块** — 异常 / 预测 / 产业-A 股 / 宏观 / 主题 / 事件 / RAG / 波动 / 因果 / 信号 / 回测 / 简报 / 问答 / 风险 / 组合 / 情景 / **多因子 / 政策 PDF / 嵌入 / 区制 / GraphRAG / 多智能体 / SHAP / Agent**。
+- 🖥️ **现代化驾驶舱** — 22 面板 + Hero 决策卡 + KPI 卡 + 多 Tab + SSE。
+- 📜 **31 节结构化报告** — 从核心速览到原始文章清单,每节都可独立追溯。
+- 🚀 **FastAPI REST API** — 30+ 端点,Swagger UI 自带。
+- 🤖 **多智能体顾问团** — 4 角色 + 仲裁,模板 / LLM 双模式。
+- 🔍 **SHAP 风格决策解释** — 特征贡献度,加性分解,闭式可解释。
+- 🐳 **Docker / docker-compose / GitHub Actions CI** — 镜像 ~280 MB,启动 < 5 s。
 
 ---
 
-## 📁 项目结构
+## 🏗️ 架构总览
 
 ```
-people-daily-economy-daily/
-├── README.md                    # 项目门面
-├── LICENSE                      # MIT
-├── .gitignore
-├── .env.example                 # AI Key 模板(必须自填)
-├── requirements.txt
-├── main.py                      # 一键 CLI 入口
-├── push_to_github.ps1           # Windows 一键推送
-├── GITHUB_GUIDE.md              # 部署与美化指南
-├── src/
-│   ├── config.py                # 配置加载 + 产业词典
-│   ├── scraper/                 # 爬虫层
-│   │   ├── fetcher.py           # requests 会话与限速
-│   │   ├── list_parser.py       # 列表页解析
-│   │   ├── article_parser.py    # 详情页解析
-│   │   └── pipeline.py          # 串起列表→详情
-│   ├── nlp/                     # 中文 NLP 层
-│   │   ├── tokenizer.py         # jieba + 停用词
-│   │   ├── keywords.py          # TF-IDF + TextRank
-│   │   ├── stats.py             # 词频 + 产业匹配
-│   │   └── wordcloud_gen.py     # 词云
-│   ├── ai/                      # AI 推理层
-│   │   ├── client.py            # OpenAI 兼容客户端
-│   │   ├── prompts.py           # 6 个分析 prompt
-│   │   └── analyzer.py          # 串接 6 个任务
-│   ├── report/                  # 报告层
-│   │   ├── template.md.j2       # Jinja2 模板
-│   │   ├── renderer.py          # 渲染 + 写入
-│   │   └── archiver.py          # JSON 归档
-│   └── utils/
-│       ├── logger.py            # 统一日志
-│       └── date_utils.py        # 日期计算
-├── data/
-│   ├── raw/                     # 每日 JSON 归档
-│   └── processed/               # 中间产物(可 gitignore)
-├── reports/                     # 每日 Markdown 报告
-├── images/                      # 词云图
-├── notebooks/                   # 4 个分析 notebook
-└── scripts/
-    └── verify_selectors.py      # 实爬验证 CSS 选择器
+┌──────────────────────────────────────────────────────────────┐
+│  Data Sources                                                 │
+│  · 人民网财经   · 中国经济网   · 新华网(opt)   · 央行(opt)  │
+└──────────────────────────┬───────────────────────────────────┘
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Pipeline  (src/scraper, src/nlp)                            │
+│  fetch → parse → quality filter → semantic dedup → jieba    │
+└──────────────────────────┬───────────────────────────────────┘
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│  AI Layer  (src/ai) — 10 dimensions + reflection + cache    │
+└──────────────────────────┬───────────────────────────────────┘
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Analysis Layer  (src/analysis) — 24 modules                 │
+│  anomaly · forecast · factor · regime · risk · scenario ·    │
+│  portfolio · embeddings · graph_rag · llm_judge · ...        │
+└──────────────────────────┬───────────────────────────────────┘
+                           ▼
+        ┌──────────────────┴──────────────────┐
+        ▼                                     ▼
+  ┌──────────────┐                  ┌──────────────────┐
+  │  Reports     │   ◀── LLM Judge ──▶│   Cockpit        │
+  │  (md/html)   │                    │   (dashboard/)  │
+  └──────────────┘                    └──────────────────┘
+        │                                     │
+        └──────────────────┬──────────────────┘
+                           ▼
+              ┌────────────────────────┐
+              │  FastAPI + REST + SSE  │
+              │  + ReAct Agent + SHAP  │
+              └────────────────────────┘
 ```
 
 ---
 
 ## 🚀 快速开始
 
+### 0. 环境要求
+
+| 组件 | 版本 |
+|---|---|
+| Python | 3.11+ (Windows / macOS / Linux) |
+| 内存 | ≥ 2 GB 可用 |
+| 磁盘 | ≥ 1 GB (含缓存) |
+| 网络 | 抓取与 LLM 调用需要出网 |
+
 ### 1. 克隆与安装
 
 ```bash
-git clone https://github.com/jiayangrui05160031-cmyk/people-daily-economy-daily.git
+git clone https://github.com/<your-account>/people-daily-economy-daily.git
 cd people-daily-economy-daily
 pip install -r requirements.txt
 ```
 
-### 2. 配置 AI Key
+> Windows 上推荐用 `python -X utf8` 启动,避免中文日志乱码。
+
+### 2. 配置 API Key
+
+把 `.env.example` 复制成 `.env`,填入你选用的 LLM 提供方 Key (详见下一节)。
+
+### 3. 一键烟测 (≈ 7 s,无需网络)
 
 ```bash
-cp .env.example .env
-# 编辑 .env,填入 AI_API_KEY
+python -X utf8 smoke_test.py --fast
 ```
 
-支持的 provider: `openai` / `deepseek` / `qwen` / `custom`,详见 [💼 AI 接口选择](#-ai-接口选择)。
-
-### 3. 运行
+### 4. 端到端跑一天
 
 ```bash
-# 全流程:爬取 → NLP → AI → 报告
-python main.py
+# 抓取 + 分析 + 报告 + 驾驶舱 (跳过已抓取数据,直接复用缓存)
+python -X utf8 main.py --target-date 2026-06-12 --skip-scrape
 
-# 指定日期 + 自定义回溯天数(默认 7)
-python main.py --date 2026-06-11 --days 14
-
-# 跳过爬取(用已有 JSON 重跑 AI/报告)
-python main.py --skip-scrape
-
-# 不调 LLM,降级为纯 NLP 报告(免 API key)
-python main.py --skip-ai
-
-# 调试日志
-python main.py --debug
+# 全流程 (抓取 + 分析 + 报告 + 驾驶舱),首次或新一天使用
+python -X utf8 main.py --target-date 2026-06-12
 ```
 
-### 4. 查看报告
-
-报告输出至 `reports/{日期}.md`,词云图在 `images/wordcloud_{日期}.png`,原始数据 JSON 在 `data/raw/{日期}.json`。
+产物:
+- 报告: `reports/2026-06-12.md` (≈ 47 KB) + `reports/2026-06-12.html`
+- 驾驶舱: `dashboard/2026-06-12.html`
+- 词云 / 知识图谱: `images/wordcloud_2026-06-12.png` · `images/knowledge_graph_2026-06-12.png`
+- 时序数据: `data/historical/economy_timeseries.sqlite3`
 
 ---
 
-## 🔬 分析流程
+## 🔑 配置你的 API Key
 
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│ STEP 1:爬取 │ -> │ STEP 2:NLP  │ -> │ STEP 3:AI   │
-│ Requests +  │    │ Jieba +     │    │ LLM 6 个    │
-│ BeautifulSoup│    │ TF-IDF/     │    │ Prompt      │
-│ 抓前一天    │    │ TextRank    │    │ 任务        │
-└─────────────┘    └─────────────┘    └─────────────┘
-                                            │
-                                            v
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│ 最终报告    │ <- │ STEP 4:渲染 │ <- │ Analysis    │
-│ reports/    │    │ Jinja2 +    │    │ Result      │
-│ {date}.md   │    │ Markdown    │    │ (JSON)      │
-└─────────────┘    └─────────────┘    └─────────────┘
+> ⚠️ **本仓库已清空 API Key。** 真实 key 只应放在你自己机器的 `.env` 里,`.env` 已被 `.gitignore` 排除,不会被提交到 GitHub。
+
+把 `.env.example` 复制成 `.env`,按需填写(以下提供方二选一即可):
+
+```bash
+# ===== 推荐: OpenAI 兼容协议 (国内直连可选 minimax / DeepSeek / 通义千问) =====
+AI_PROVIDER=custom
+AI_BASE_URL=https://api.minimaxi.com/v1
+AI_MODEL=MiniMax-M3
+AI_API_KEY=<你的 key>
 ```
 
-**关键方法论**:
-- **采集去重**:按文章 ID 去重,按 URL 路径日期过滤"前一天"
-- **关键词融合**:TF-IDF(全局重要性) + TextRank(图排序)双路融合
-- **LLM 提示工程**:6 个独立任务,每个返回 JSON Schema,失败降级到规则匹配
-- **报告模板化**:Jinja2 渲染,可换肤
+| 提供方 | 适用 | 推荐模型 | Base URL |
+|---|---|---|---|
+| **minimax** (推荐) | 国内直连,中文最强 | `MiniMax-M3` (thinking) | `https://api.minimaxi.com/v1` |
+| DeepSeek | 性价比高 | `deepseek-chat` | `https://api.deepseek.com/v1` |
+| 通义千问 (DashScope) | 阿里云生态 | `qwen-plus` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| OpenAI | 需代理 | `gpt-4o-mini` | `https://api.openai.com/v1` |
+
+> 💡 **没有 key 也能跑 80% 的功能。** 24 个分析模块里,异常 / 预测 / 波动 / 风险 / 组合 / 情景 / SHAP / 多智能体 都内置了"模板降级"模式,无 LLM 也能出数。LLM 模式只在 `use_llm=True` 时启用。
 
 ---
 
-## 🧩 核心模块
+## 🧪 烟测与一键运行
 
-| 模块 | 入口 | 职责 |
+```bash
+# 烟测: 7 秒,无网络,无 key
+python -X utf8 smoke_test.py --fast
+
+# 端到端 (跳过抓取,复用缓存) — 4-5 分钟
+python -X utf8 main.py --target-date 2026-06-12 --skip-scrape
+
+# 端到端 (含抓取) — 8-12 分钟
+python -X utf8 main.py --target-date 2026-06-12
+
+# 启动 REST 服务
+python -X utf8 -m src.api.server --host 0.0.0.0 --port 8000
+# → http://localhost:8000/docs   (Swagger UI)
+```
+
+---
+
+## 🐳 Docker 部署
+
+```bash
+docker compose up -d
+# → http://localhost:8000/docs
+```
+
+镜像多阶段构建,体积约 280 MB,启动 < 5 秒。健康检查走 `/health`。
+
+---
+
+## 🌐 REST API 速览
+
+| 模块 | 端点 | 能力 |
 |---|---|---|
-| **爬虫** | `src.scraper.pipeline.fetch_previous_day_articles` | 抓取 → 解析 → 返回 Article 列表 |
-| **NLP** | `src.nlp.stats.analyze` | 分词 / 关键词 / 词频 / 词云 |
-| **AI** | `src.ai.analyzer.analyze_all` | 6 个 LLM 任务 → AnalysisResult |
-| **报告** | `src.report.renderer.render` | 渲染 → 写入 reports/ |
+| Health | `GET /health` | 24 模块健康度 |
+| AI | `POST /v6/qa` | RAG 智能问答 |
+| AI | `POST /v6/council` | 4 智能体顾问团 + 仲裁 |
+| AI | `GET /v6/shap` | SHAP 决策解释 |
+| Risk | `GET /v6/risk` | 8 类风险指标 |
+| Portfolio | `POST /v6/portfolio` | 行业组合回测 |
+| Scenario | `POST /v6/scenario/run` | 蒙特卡洛情景 |
+| 🆕 Regime | `GET /v9/regime` | Hamilton 区制后验 |
+| 🆕 Embeddings | `POST /v9/embeddings/search` | 语义向量检索 |
+| 🆕 GraphRAG | `POST /v9/graphrag/ask` | 跨文章全局问答 |
+| 🆕 Judge | `POST /v9/judge` | LLM-as-Judge 自评 |
+| 🆕 Agent | `POST /v9/agent/run` | ReAct Agent |
+| 🆕 Stream | `GET /v9/stream/*` | SSE 实时流 |
 
-每个模块都可独立调用,便于测试与扩展。
+完整列表:启动服务后访问 `http://localhost:8000/docs`。
 
 ---
 
-## 📈 输出示例
+## 🖥️ 仪表盘与样例报告
 
-每日报告结构(详见 `reports/{date}.md`):
+仓库根目录下的 `dashboard/2026-06-12.html` (≈ 51 KB) 是 22 面板的现代化驾驶舱样例,
+`reports/2026-06-12.md` (≈ 47 KB) 是 31 节结构化报告样例 — 直接在浏览器打开即可预览。
 
-| 章节 | 内容 | 来源 |
-|---|---|---|
-| 📌 核心速览 | 200 字摘要 | LLM |
-| 🔥 昨日主题词 | Top 10 关键词 + 权重 | NLP + LLM |
-| 🌬️ 政策风向 | 扩张/收紧/中性 + 关键词 | LLM |
-| 🏭 重点产业/行业 | 3-5 个产业 + 涉及文章数 | 规则 + LLM |
-| 📜 重点政策出台 | 3-5 条政策 + 主要内容 + 来源 | LLM |
-| 🔮 未来发展判断 | 200 字趋势预测 | LLM |
-| 📰 原始文章列表 | 所有文章标题/URL/来源/时间 | 爬虫 |
+| 词云 | 知识图谱 |
+|:---:|:---:|
+| `images/wordcloud_2026-06-12.png` | `images/knowledge_graph_2026-06-12.png` |
+
+---
+
+## 🧩 项目结构
+
+```text
+people-daily-economy-daily/
+├── main.py                       # 端到端入口
+├── smoke_test.py                 # 24 模块烟测 (≈ 7 s,无 key)
+├── requirements.txt
+├── Dockerfile · docker-compose.yml
+├── .env.example                  # ← 复制为 .env 并填 key
+├── .github/workflows/ci.yml      # GitHub Actions CI
+├── src/
+│   ├── scraper/                  # 多源抓取 + 反爬 + 语义去重
+│   ├── nlp/                      # jieba + TF-IDF + 词云
+│   ├── ai/                       # 10 维 LLM 分析 + 反思 + 缓存
+│   ├── analysis/                 # 24 个分析模块 (v1–v9 累加)
+│   ├── agent/                    # 🆕 ReAct Agent
+│   ├── kg/                       # 知识图谱
+│   ├── dashboard/                # 驾驶舱模板
+│   ├── report/                   # 报告模板 (Markdown / HTML)
+│   ├── api/                      # FastAPI + SSE + 多智能体 + SHAP
+│   ├── storage/                  # SQLite 时序库
+│   └── utils/
+├── data/{raw,processed,historical,cache}/
+├── reports/                      # 历史报告 (按日期)
+├── dashboard/                    # 历史驾驶舱 (按日期)
+├── images/                       # 词云 / 知识图谱
+├── notebooks/                    # Jupyter 探索
+└── scripts/                      # 维护脚本
+```
+
+---
+
+## 🛠️ 技术栈
+
+| 层 | 选型 |
+|---|---|
+| 抓取 | `requests` · `BeautifulSoup4` · `lxml` · 自研反爬 / 质量过滤 / 语义去重 |
+| NLP | `jieba` · `scikit-learn` (TF-IDF / LDA) · `wordcloud` · `matplotlib` |
+| 量化 | `numpy` · `scipy` · `networkx` · 自研 Hamilton MS-AR / SHAP 风格 / 蒙特卡洛 |
+| LLM | OpenAI 兼容协议 (支持 minimax / DeepSeek / 通义千问 / OpenAI) |
+| 嵌入 | `torch` · `transformers` (中文向量,带 hash fallback) |
+| API | `FastAPI` · `uvicorn` · `pydantic v2` · `httpx` · SSE |
+| 工程 | `python-dotenv` · `Jinja2` · `prometheus-client` · `Docker` · `GitHub Actions` |
 
 ---
 
 ## ❓ 常见问题
 
-**Q1: 没有任何新闻被采集到?**
-A: 检查网络、确认 `finance.people.com.cn` 可访问;运行 `python scripts/verify_selectors.py` 验证选择器。
+**Q1: 一定要 API key 吗?**
+A: 不必须。LLM 用于"10 维语义分析 + RAG 问答 + 多智能体 + Agent + LLM Judge",其余 80% 模块 (异常 / 预测 / 风险 / 组合 / 情景 / 区制 / SHAP / 词云 / 知识图谱) 都内置模板降级。
 
-**Q2: LLM 调用失败?**
-A: 检查 `.env` 中 `AI_API_KEY` 是否正确;网络是否能访问 `AI_BASE_URL`;DeepSeek/Qwen 无需代理,OpenAI/Claude 需要。
+**Q2: 我能换数据源吗?**
+A: 可以。`src/scraper/multi_source.py` 中注册新的 `BaseSource` 子类即可,默认 人民网 + 中国经济网,可启用 `ENABLE_XINHUA=1` / `ENABLE_GOV_PBOC=1`。
 
-**Q3: 词云图中文是方块?**
-A: Windows 自带字体在 `C:\Windows\Fonts\msyh.ttc`,已在 `config.py` 默认配置。
+**Q3: v9 的"向量嵌入"必须要 transformers 吗?**
+A: 不必须。代码自动检测环境,有 HF 权重用 BERT,没有则 fallback 到哈希向量 (`prefer="hash"`),保证不卡下载。
 
-**Q4: 节假日新闻太少,报告很空?**
-A: 正常现象,会生成精简版报告。周末和节假日新闻量约为工作日 1/3。
+**Q4: 烟测 / 端到端跑多久?**
+A: 烟测 ~7 s,端到端 (skip-scrape) ~4-5 分钟,端到端 (含抓取) 8-12 分钟。LLM 步骤并发 4-8 路,失败会重试 + 反思 1 轮。
 
-**Q5: 每天只能抓到 11 篇文章?**
-A: 人民网财经主列表单日仅展示 ~11 篇置顶(且 index1-5 内容完全相同)。本项目默认回溯 7 天合并分析,可通过 `--days 30` 进一步扩大回溯窗口。
+**Q5: Windows 上中文乱码怎么办?**
+A: 所有命令加 `python -X utf8` 前缀;`.env` 里 `PYTHONIOENCODING=utf-8` 也已注释提示。
 
-**Q6: 如何定时每天自动跑?**
-A: Windows 用任务计划程序,Linux/Mac 用 crontab,详见 GITHUB_GUIDE.md。
+**Q6: Docker 镜像多大?**
+A: 多阶段构建后 ~280 MB,启动 < 5 s,健康检查走 `/health`。
 
----
+**Q7: 我能扩展新情景 / 新因子吗?**
+A: 能。`src/analysis/scenario.py` 顶部 `SCENARIOS` dict 加 shock / vol_mult / horizon,`src/analysis/factor_model.py` 顶部 `FACTOR_LIBRARY` 加新因子,均无需重启服务。
 
-## 📝 License
-
-本项目采用 [MIT License](LICENSE)。
-
----
-
-## ✨ 致谢
-
-- 数据源: [人民网财经频道](http://finance.people.com.cn/)
-- 中文分词: [jieba](https://github.com/fxsjy/jieba)
-- 致敬所有开源贡献者
+**Q8: OpenAPI 文档在哪?**
+A: 启动 `src.api.server` 后 `http://localhost:8000/docs` (Swagger UI) / `/redoc` (ReDoc)。
 
 ---
 
-<p align="center">如果这个项目对你有帮助,欢迎 ⭐ Star!</p>
+## 🤝 贡献与许可证
+
+欢迎 PR / Issue。在提 PR 前请:
+
+1. 运行 `python -X utf8 smoke_test.py --fast` 确保烟测全绿。
+2. 若新增 LLM 任务,补 `src/ai/prompts.py` 与 `src/ai/schema.py`。
+3. 若新增分析模块,补 `src/analysis/` 下独立文件 + 在 `main.py` 串接。
+
+本项目基于 **MIT License** 开源,详见 [LICENSE](LICENSE)。
+
+### 🙏 致谢
+
+数据源: [人民网财经](http://finance.people.com.cn) · [中国经济网](http://www.ce.cn)
+LLM 提供方: [minimax](https://api.minimaxi.com) · [DeepSeek](https://deepseek.com) · [通义千问](https://tongyi.aliyun.com) · [OpenAI](https://openai.com)
+
+### ⚠️ 免责声明
+
+本项目仅作技术研究与学习用途,所产出的分析与建议**不构成任何投资建议**。请使用者自行判断与承担风险。

@@ -1,0 +1,560 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>宏观经济智能驾驶舱 · 2026-06-12 · v5</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+:root {
+  --bg: #0b1220;
+  --panel: #0d1117;
+  --panel2: #161b22;
+  --border: #21262d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #a371f7;
+  --bull: #7ee787;
+  --bear: #ff7b72;
+  --neutral: #d29922;
+  --shadow: rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  background: var(--bg); color: var(--text);
+  margin: 0; padding: 16px 24px 32px; line-height: 1.55;
+}
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.header h1 { margin: 0; font-size: 22px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px; }
+.meta { color: var(--muted); font-size: 12px; }
+.meta b { color: var(--text); }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 11px; background: var(--panel2); color: var(--accent); margin-left: 6px; border: 1px solid var(--border); }
+
+/* Hero: Signal + Narrative */
+.hero { display: grid; grid-template-columns: 320px 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 1100px) { .hero { grid-template-columns: 1fr; } }
+.signal-card {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--panel2) 100%);
+  border: 1px solid var(--border); border-radius: 10px; padding: 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.signal-action { font-size: 32px; font-weight: 700; letter-spacing: 1px; }
+.action-BUY { color: var(--bull); }
+.action-SELL { color: var(--bear); }
+.action-HOLD { color: var(--neutral); }
+.action-REDUCE { color: #ff9b3d; }
+.signal-score { font-size: 14px; color: var(--muted); }
+.signal-conf { width: 100%; height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+.signal-conf-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.3s; }
+.signal-reasons { font-size: 12px; color: var(--text); }
+.signal-reasons li { padding: 2px 0; }
+.narrative-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+}
+.narrative-card h3 { margin: 0 0 12px; font-size: 14px; color: var(--accent); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.narrative-card .narr-source { font-size: 11px; color: var(--muted); padding: 1px 6px; border: 1px solid var(--border); border-radius: 3px; }
+.narrative-section { margin-bottom: 10px; }
+.narrative-section h4 { margin: 0 0 4px; font-size: 12px; color: var(--accent2); font-weight: 500; }
+.narrative-section p { margin: 0; font-size: 13px; color: var(--text); white-space: pre-wrap; }
+
+/* KPI 卡片 */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.kpi .lbl { color: var(--muted); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi .val { font-size: 22px; font-weight: 600; }
+.kpi .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.kpi.bull .val { color: var(--bull); }
+.kpi.bear .val { color: var(--bear); }
+.kpi.neutral .val { color: var(--neutral); }
+.kpi.accent .val { color: var(--accent); }
+
+/* 通用面板 */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.panel h2 { margin: 0 0 8px; font-size: 13px; color: var(--accent); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.panel h2 .h2-tag { font-size: 10px; color: var(--muted); font-weight: 400; }
+.panel .desc { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+.panel.wide { grid-column: span 2; }
+@media (max-width: 900px) { .panel.wide { grid-column: span 1; } }
+
+img.kg { max-width: 100%; border-radius: 6px; background: var(--panel2); }
+.footer { color: var(--muted); font-size: 11px; text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* Plotly overrides */
+.plotly-chart { min-height: 280px; }
+
+/* Section header */
+.section-title { font-size: 13px; color: var(--muted); margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); letter-spacing: 1px; text-transform: uppercase; }
+.section-title .num { color: var(--accent); font-weight: 600; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>宏观经济智能驾驶舱<span class="tag">v5 · 12 模块</span></h1>
+    <div class="meta">报告日期: <b>2026-06-12</b> · 生成: 2026-06-25 13:08:20 · 数据: 人民网 + 中国经济网</div>
+  </div>
+  <div class="meta">
+    <a href="index.html" style="color: var(--accent); text-decoration: none;">← 历史索引</a>
+  </div>
+</div>
+
+<!-- HERO: 信号引擎 + 高管简报 -->
+<div class="hero">
+  <div class="signal-card" id="hero-signal">
+    <div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">综合决策信号</div>
+      <div class="signal-action" id="sig-action">—</div>
+      <div class="signal-score" id="sig-score">score: 0.00 · confidence: 0%</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);">置信度</div>
+      <div class="signal-conf"><div class="signal-conf-bar" id="sig-bar" style="width:0%"></div></div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);">核心依据</div>
+      <ul class="signal-reasons" id="sig-reasons"><li>暂无</li></ul>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);">行业信号 (Top)</div>
+      <ul class="signal-reasons" id="sig-industries"><li>暂无</li></ul>
+    </div>
+  </div>
+
+  <div class="narrative-card">
+    <h3>📋 高管策略简报 <span class="narr-source" id="narr-source">—</span></h3>
+    <div id="narr-sections">
+      <div class="meta">暂无简报</div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI 卡片 (8 关键指标) -->
+<div class="kpis" id="kpis"></div>
+
+<!-- 第 1 段: 时间序列 -->
+<div class="section-title"><span class="num">01</span>时序基线 (14 天趋势)</div>
+<div class="grid">
+  <div class="panel"><h2>1. 情绪指数时间线</h2><div class="desc">近 15 天聚合情绪 (0-100)</div><div id="chart-sentiment" class="plotly-chart"></div></div>
+  <div class="panel"><h2>2. 政策倾向时间线</h2><div class="desc">扩张=+1 / 中性=0 / 收紧=-1</div><div id="chart-policy" class="plotly-chart"></div></div>
+  <div class="panel"><h2>3. 注意力熵 vs 头部集中度</h2><div class="desc">熵高=话题分散,头部集中=单一话题</div><div id="chart-attention" class="plotly-chart"></div></div>
+  <div class="panel"><h2>4. 跨日主题词趋势 (Top 5)</h2><div class="desc">Top 5 主题词近 15 天频次</div><div id="chart-keyword-trend" class="plotly-chart"></div></div>
+</div>
+
+<!-- 第 2 段: 前沿模块 -->
+<div class="section-title"><span class="num">02</span>前沿模块 (v5 · 12 模块)</div>
+<div class="grid">
+
+  <div class="panel">
+    <h2>5. 异常检测 (Z-score) <span class="h2-tag">anomaly</span></h2>
+    <div class="desc">|Z|>=1.5 留意, >=2 警告, >=3 危急</div>
+    <div id="chart-anomaly" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>6. 时序预测 (95% 置信带) <span class="h2-tag">forecast</span></h2>
+    <div class="desc">MA + 线性趋势外推次日指标</div>
+    <div id="chart-forecast" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>7. 波动率 / 恐慌指数 <span class="h2-tag">volatility</span></h2>
+    <div class="desc">类 VIX 综合指数 (情绪+政策+行业+事件)</div>
+    <div id="chart-volatility" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>8. 产业-A股联动 <span class="h2-tag">market</span></h2>
+    <div class="desc">当日命中产业的 A 股涨跌幅</div>
+    <div id="chart-market" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>9. 宏观指标走势 <span class="h2-tag">macro</span></h2>
+    <div class="desc">CPI / PMI / PPI / GDP (东方财富 API)</div>
+    <div id="chart-macro" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>10. LDA 主题 (Treemap) <span class="h2-tag">topics</span></h2>
+    <div class="desc">sklearn 主题挖掘 + 主题词 Treemap</div>
+    <div id="chart-topics" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>11. 事件时间线 <span class="h2-tag">events</span></h2>
+    <div class="desc">AI 抽取主谓宾事件 + 强度</div>
+    <div id="chart-events" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>12. RAG 历史相似 <span class="h2-tag">rag</span></h2>
+    <div class="desc">TF-IDF 余弦相似度跨期检索</div>
+    <div id="chart-rag" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>13. 因果 / 政策-市场传导 <span class="h2-tag">causal</span></h2>
+    <div class="desc">事件 → 行业 → A 股传导链</div>
+    <div id="chart-causal" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>14. 多信号决策 (信号源分解) <span class="h2-tag">signal</span></h2>
+    <div class="desc">每个信号源的得分与权重</div>
+    <div id="chart-signal" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>15. 预测准确率回测 <span class="h2-tag">backtest</span></h2>
+    <div class="desc">walk-forward 多步长方向准确率</div>
+    <div id="chart-backtest" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>16. 主题词 Top 15 + 实体 Top 15</h2>
+    <div class="desc">左侧主题词 (蓝=LLM 选定),右侧实体 (按类型着色)</div>
+    <div id="chart-keywords" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>17. 产业热度</h2>
+    <div class="desc">当日产业命中次数,颜色=多空立场</div>
+    <div id="chart-industries" class="plotly-chart"></div>
+  </div>
+
+  <div class="panel wide">
+    <h2>18. 知识图谱 (实体 + 共现)</h2>
+    <div class="desc">节点大小=频次, 颜色深度=PageRank, 边=共现权重</div>
+    <img class="kg" src="../images/knowledge_graph_2026-06-12.png" onerror="this.style.display='none'" alt="KG">
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>v5 · AI 前沿决策版 · 12 模块智能驾驶舱</span> · 数据源: 人民网财经 + 中国经济网 · 自动生成 · 2026-06-25 13:08:20
+</div>
+
+<script>
+const COLORS = {
+  bull: '#7ee787', bear: '#ff7b72', neutral: '#d29922',
+  accent: '#58a6ff', accent2: '#a371f7', grid: '#21262d', text: '#e6edf3',
+};
+const PLOTLY_LAYOUT_BASE = {
+  paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+  font: { color: COLORS.text, family: 'Microsoft YaHei', size: 11 },
+  margin: { t: 20, r: 16, b: 40, l: 50 },
+  xaxis: { gridcolor: COLORS.grid, linecolor: COLORS.grid },
+  yaxis: { gridcolor: COLORS.grid, linecolor: COLORS.grid },
+  legend: { font: { size: 10 } },
+  height: 300,
+};
+const ADVANCED = {"anomaly": {"date": "2026-06-12", "window_size": 30, "signals": [{"metric": "sentiment_index", "value": 87.5, "mean": 61.48966666666666, "std": 5.256270847494659, "z_score": 4.948, "direction": "spike_high", "severity": "critical", "description": "情绪指数 突增至 87.500 (历史均值 61.490 ± 5.256, Z=+4.95)"}, {"metric": "policy_stance_score", "value": 1.0, "mean": 0.16353333333333334, "std": 0.2215028567661274, "z_score": 3.776, "direction": "spike_high", "severity": "critical", "description": "政策倾向 突增至 1.000 (历史均值 0.164 ± 0.222, Z=+3.78)"}, {"metric": "attention_entropy", "value": 0.9738, "mean": 0.7701333333333333, "std": 0.05672314832196425, "z_score": 3.591, "direction": "spike_high", "severity": "critical", "description": "注意力熵 突增至 0.974 (历史均值 0.770 ± 0.057, Z=+3.59)"}], "overall_risk": "high", "summary": "检测到 3 项异常 (最高严重度: critical): 情绪指数 突增至 87.500 (历史均值 61.490 ± 5.256, Z=+4.95); 政策倾向 突增至 1.000 (历史均值 0.164 ± 0.222, Z=+3.78); 注意力熵 突增至 0.974 (历史均值 0.770 ± 0.057, Z=+3.59)"}, "forecast": {"base_date": "2026-06-12", "target_date": "2026-06-13", "forecasts": [{"metric": "sentiment_index", "predicted": 67.316, "lower": 58.279, "upper": 76.353, "trend": "falling", "method": "MA+trend", "confidence": 0.7, "sample_size": 14}, {"metric": "policy_stance_score", "predicted": 0.119, "lower": -0.293, "upper": 0.532, "trend": "rising", "method": "MA+trend", "confidence": 0.7, "sample_size": 14}, {"metric": "article_count", "predicted": 40.571, "lower": 12.981, "upper": 68.162, "trend": "stable", "method": "MA+trend", "confidence": 0.7, "sample_size": 14}, {"metric": "attention_entropy", "predicted": 0.855, "lower": 0.812, "upper": 0.898, "trend": "falling", "method": "MA+trend", "confidence": 0.7, "sample_size": 14}], "headline": "预测次日整体偏空 (下跌指标 2/4)"}, "market": {"date": "2026-06-12", "industries": [{"industry": "医疗健康", "stocks": [{"code": "600276", "name": "恒瑞医药", "price": 0.502, "pct_change": 0.013, "turnover": 4097879912.0}, {"code": "300760", "name": "迈瑞医疗", "price": 1.385, "pct_change": 0.008, "turnover": 1316360346.84}, {"code": "603259", "name": "药明康德", "price": 1.175, "pct_change": 0.022, "turnover": 6353239056.0}], "avg_pct_change": 0.014, "best": {"code": "603259", "name": "药明康德", "price": 1.175, "pct_change": 0.022, "turnover": 6353239056.0}, "worst": {"code": "300760", "name": "迈瑞医疗", "price": 1.385, "pct_change": 0.008, "turnover": 1316360346.84}, "breadth": 1.0}, {"industry": "制造业", "stocks": [{"code": "300124", "name": "汇川技术", "price": 0.675, "pct_change": 0.016, "turnover": 2623969324.4}, {"code": "002747", "name": "埃斯顿", "price": 0.367, "pct_change": 0.128, "turnover": 3789268497.8}], "avg_pct_change": 0.072, "best": {"code": "002747", "name": "埃斯顿", "price": 0.367, "pct_change": 0.128, "turnover": 3789268497.8}, "worst": {"code": "300124", "name": "汇川技术", "price": 0.675, "pct_change": 0.016, "turnover": 2623969324.4}, "breadth": 1.0}, {"industry": "金融", "stocks": [{"code": "601318", "name": "中国平安", "price": 0.494, "pct_change": 0.008, "turnover": 4260264316.0}], "avg_pct_change": 0.008, "best": {"code": "601318", "name": "中国平安", "price": 0.494, "pct_change": 0.008, "turnover": 4260264316.0}, "worst": {"code": "601318", "name": "中国平安", "price": 0.494, "pct_change": 0.008, "turnover": 4260264316.0}, "breadth": 1.0}], "market_overall": "mixed", "top_gainers": [{"code": "002747", "name": "埃斯顿", "price": 0.367, "pct_change": 0.128, "turnover": 3789268497.8}, {"code": "603259", "name": "药明康德", "price": 1.175, "pct_change": 0.022, "turnover": 6353239056.0}, {"code": "300124", "name": "汇川技术", "price": 0.675, "pct_change": 0.016, "turnover": 2623969324.4}, {"code": "600276", "name": "恒瑞医药", "price": 0.502, "pct_change": 0.013, "turnover": 4097879912.0}, {"code": "300760", "name": "迈瑞医疗", "price": 1.385, "pct_change": 0.008, "turnover": 1316360346.84}], "top_losers": [{"code": "300760", "name": "迈瑞医疗", "price": 1.385, "pct_change": 0.008, "turnover": 1316360346.84}, {"code": "601318", "name": "中国平安", "price": 0.494, "pct_change": 0.008, "turnover": 4260264316.0}, {"code": "600276", "name": "恒瑞医药", "price": 0.502, "pct_change": 0.013, "turnover": 4097879912.0}, {"code": "300124", "name": "汇川技术", "price": 0.675, "pct_change": 0.016, "turnover": 2623969324.4}, {"code": "603259", "name": "药明康德", "price": 1.175, "pct_change": 0.022, "turnover": 6353239056.0}], "note": "(东方财富实时行情, 仅供研究)"}, "macro": {"date": "2026-06-12", "as_of": "2026-06-25 13:08:20", "source": "东方财富 (4 实时) + 内置参考 (5)", "indicators": [{"name": "CPI (居民消费价格)", "code": "CPI_YoY", "latest": "1.2%", "mom": "-0.1%", "yoy": "1.2%", "trend": "→", "signal": "温和通胀", "source": "eastmoney", "series": [{"date": "2026-05", "value": 1.2}, {"date": "2026-04", "value": 1.2}, {"date": "2026-03", "value": 1}, {"date": "2026-02", "value": 1.3}, {"date": "2026-01", "value": 0.2}, {"date": "2025-12", "value": 0.8}]}, {"name": "制造业 PMI", "code": "PMI_MAKE", "latest": "50", "mom": "—", "yoy": "—", "trend": "↓", "signal": "扩张", "source": "eastmoney", "series": [{"date": "2026-05", "value": 50}, {"date": "2026-04", "value": 50.3}, {"date": "2026-03", "value": 50.4}, {"date": "2026-02", "value": 49}, {"date": "2026-01", "value": 49.3}, {"date": "2025-12", "value": 50.1}]}, {"name": "PPI (工业品出厂价格)", "code": "PPI_YoY", "latest": "3.9%", "mom": "—", "yoy": "3.9%", "trend": "↑", "signal": "工业品价格上行", "source": "eastmoney", "series": [{"date": "2026-05", "value": 3.9}, {"date": "2026-04", "value": 2.8}, {"date": "2026-03", "value": 0.5}, {"date": "2026-02", "value": -0.9}, {"date": "2026-01", "value": -1.4}, {"date": "2025-12", "value": -1.9}]}, {"name": "GDP (累计同比)", "code": "GDP_YoY", "latest": "5%", "mom": "—", "yoy": "5%", "trend": "→", "signal": "增长平稳", "source": "eastmoney", "series": [{"date": "2026-03", "value": 5}, {"date": "2025-12", "value": 5}, {"date": "2025-09", "value": 5.2}, {"date": "2025-06", "value": 5.3}, {"date": "2025-03", "value": 5.4}, {"date": "2024-12", "value": 5}]}, {"name": "LPR (1年期)", "code": "LPR_1Y", "latest": "3.10%", "mom": "持平", "yoy": "-30bp", "trend": "→", "signal": "政策利率", "source": "fallback", "series": [{"date": "2025-10-20", "value": "3.10"}]}, {"name": "LPR (5年期)", "code": "LPR_5Y", "latest": "3.60%", "mom": "持平", "yoy": "-25bp", "trend": "→", "signal": "长期信贷", "source": "fallback", "series": [{"date": "2025-10-20", "value": "3.60"}]}, {"name": "M2 同比", "code": "M2_YoY", "latest": "8.4%", "mom": "+0.2pct", "yoy": "+0.6pct", "trend": "→", "signal": "货币总量", "source": "fallback", "series": [{"date": "2025-09", "value": "8.4"}]}, {"name": "Shibor 隔夜", "code": "SHIBOR_ON", "latest": "1.52%", "mom": "+1bp", "yoy": "-15bp", "trend": "→", "signal": "短端利率", "source": "fallback", "series": [{"date": "2025-11", "value": "1.52"}]}, {"name": "10年国债收益率", "code": "CN10Y_YIELD", "latest": "1.83%", "mom": "+2bp", "yoy": "-25bp", "trend": "→", "signal": "无风险利率", "source": "fallback", "series": [{"date": "2025-11", "value": "1.83"}]}], "news_linkage": [{"macro_indicator": "CPI (居民消费价格)", "value": "1.2%", "interpretation": "宏观背景: CPI (居民消费价格) 最新 1.2%, 趋势 →, 温和通胀"}], "summary": "宏观快照: 实时 4 项 (CPI/PMI/PPI/GDP), 内部参考 5 项; 新闻匹配 1 条。"}, "topics": {"date": "2026-06-12", "n_topics": 5, "n_docs": 29, "topics": [{"id": 0, "label": "基金", "top_words": ["基金", "人民币", "科普", "投资者", "长期", "转化", "中国", "长江"], "dominance": 0.1856, "dominant_industry": null}, {"id": 1, "label": "消费与内需", "top_words": ["指数", "消费", "产品", "理财", "市场", "波动", "资产", "风险"], "dominance": 0.1984, "dominant_industry": null}, {"id": 2, "label": "村镇", "top_words": ["村镇", "万元", "股份", "发行", "汇率", "AI", "施肥", "问题"], "dominance": 0.2495, "dominant_industry": null}, {"id": 3, "label": "金刚石", "top_words": ["金刚石", "市场", "回购", "亿元", "板块", "券商", "散热", "上市公司"], "dominance": 0.1774, "dominant_industry": null}, {"id": 4, "label": "2026", "top_words": ["2026", "有限公司", "股份", "数据", "退市", "证券", "定增", "科技股份"], "dominance": 0.1892, "dominant_industry": null}], "doc_topic_entropy": 0.097, "evolution": [{"date": "2026-06-12", "topic_dist": [{"topic_id": 0, "strength": 0.1856}, {"topic_id": 1, "strength": 0.1984}, {"topic_id": 2, "strength": 0.2495}, {"topic_id": 3, "strength": 0.1774}, {"topic_id": 4, "strength": 0.1892}]}], "summary": "从 29 篇文档中提取 5 个主题, 主题-文档分布熵 0.097"}, "events_study": {"date": "2026-06-12", "events": [], "historical": [], "history_size": 0, "summary": "共 0 个事件, 涉及 0 个类别; 高强度 (>=0.7) 0 个, 历史同类事件总计 0 条。"}, "rag": null, "volatility": {"date": "2026-06-12", "index": 24.6, "level": "calm", "ma7": 66.8, "components": {"sentiment_vol": 5.386, "policy_vol": 0.199, "industry_vol": 1.385, "event_density": 0.494}, "history": [{"date": "2026-05-29", "index": 0.0}, {"date": "2026-05-30", "index": 0.0}, {"date": "2026-05-31", "index": 0.0}, {"date": "2026-06-01", "index": 20.0}, {"date": "2026-06-02", "index": 20.3}, {"date": "2026-06-03", "index": 19.2}, {"date": "2026-06-04", "index": 5.8}, {"date": "2026-06-05", "index": 6.6}, {"date": "2026-06-06", "index": 7.0}, {"date": "2026-06-07", "index": 18.4}, {"date": "2026-06-08", "index": 17.7}, {"date": "2026-06-09", "index": 18.7}, {"date": "2026-06-10", "index": 17.1}, {"date": "2026-06-11", "index": 6.3}], "summary": "情绪 std=5.39, 政策强度=0.2, 行业变化=1.385, 事件密度=0.49; 综合指数 24.6 (calm)"}, "causal": {"date": "2026-06-12", "chains": [], "confidence": 0.0, "summary": "未识别出明显传导链 (历史数据不足或当日事件无明确产业关联)"}, "signal": {"date": "2026-06-12", "score": -0.145, "confidence": 0.078, "action": "HOLD", "signals": [{"name": "anomaly_risk", "score": -0.6, "weight": 0.15, "reason": "异常风险=high, 触发 3 项", "direction": "bear"}, {"name": "forecast", "score": 0.0, "weight": 0.15, "reason": "明日情绪预测 50 (今日 50, Δ=+0.0)", "direction": "neutral"}, {"name": "volatility", "score": 0.15, "weight": 0.1, "reason": "恐慌指数 24.6 (calm)", "direction": "bull"}, {"name": "market_correlation", "score": 0.0, "weight": 0.15, "reason": "A 股联动=mixed", "direction": "mixed"}, {"name": "topic_dispersion", "score": -0.242, "weight": 0.05, "reason": "主题分布熵=0.10 (Top: 基金, 消费与内需, 村镇)", "direction": "bear"}], "industry_signals": [{"industry": "医疗健康", "score": 0.0, "action": "观望", "drivers": ["新闻情感 0.50", "AI 置信 50%"]}, {"industry": "制造业", "score": 0.0, "action": "观望", "drivers": ["新闻情感 0.50", "AI 置信 50%"]}, {"industry": "金融", "score": 0.0, "action": "观望", "drivers": ["新闻情感 0.50", "AI 置信 50%"]}], "top_reasons": ["异常风险=high, 触发 3 项", "恐慌指数 24.6 (calm)", "主题分布熵=0.10 (Top: 基金, 消费与内需, 村镇)"], "risks": ["异常风险=high, 触发 3 项", "主题分布熵=0.10 (Top: 基金, 消费与内需, 村镇)"], "summary": "综合信号 -0.15 (HOLD, 置信 8%); 5 个有效信号; Top: 异常风险=high, 触发 3 项"}, "backtest": {"base_date": "2026-06-12", "horizon_reports": [{"horizon": 1, "n": 16, "mae": 3.85, "rmse": 5.295, "bias": -1.105, "direction_accuracy": 0.812, "band_coverage": 0.875}, {"horizon": 3, "n": 14, "mae": 4.096, "rmse": 5.6, "bias": -1.329, "direction_accuracy": 0.786, "band_coverage": 0.857}, {"horizon": 7, "n": 10, "mae": 3.592, "rmse": 5.087, "bias": -2.092, "direction_accuracy": 0.8, "band_coverage": 0.9}], "cases": [{"target_date": "2026-05-27", "predicted": 61.95, "actual": 59.36, "lower": 53.94, "upper": 69.96, "abs_error": 2.59, "direction_correct": true, "in_band": true}, {"target_date": "2026-05-28", "predicted": 61.81, "actual": 63.48, "lower": 53.51, "upper": 70.1, "abs_error": 1.67, "direction_correct": true, "in_band": true}, {"target_date": "2026-05-29", "predicted": 60.44, "actual": 61.64, "lower": 56.73, "upper": 64.16, "abs_error": 1.2, "direction_correct": true, "in_band": true}, {"target_date": "2026-05-30", "predicted": 61.14, "actual": 64.07, "lower": 58.15, "upper": 64.14, "abs_error": 2.93, "direction_correct": false, "in_band": true}, {"target_date": "2026-05-31", "predicted": 61.94, "actual": 50.07, "lower": 58.65, "upper": 65.24, "abs_error": 11.87, "direction_correct": true, "in_band": false}, {"target_date": "2026-06-01", "predicted": 59.75, "actual": 65.17, "lower": 49.76, "upper": 69.74, "abs_error": 5.42, "direction_correct": true, "in_band": true}, {"target_date": "2026-06-02", "predicted": 60.87, "actual": 62.71, "lower": 50.03, "upper": 71.7, "abs_error": 1.84, "direction_correct": true, "in_band": true}, {"target_date": "2026-06-03", "predicted": 60.71, "actual": 60.83, "lower": 50.0, "upper": 71.42, "abs_error": 0.12, "direction_correct": true, "in_band": true}, {"target_date": "2026-06-04", "predicted": 60.63, "actual": 64.81, "lower": 49.96, "upper": 71.31, "abs_error": 4.18, "direction_correct": false, "in_band": true}, {"target_date": "2026-06-05", "predicted": 60.79, "actual": 66.04, "lower": 49.92, "upper": 71.67, "abs_error": 5.25, "direction_correct": false, "in_band": true}, {"target_date": "2026-06-06", "predicted": 63.91, "actual": 61.96, "lower": 60.2, "upper": 67.61, "abs_error": 1.95, "direction_correct": true, "in_band": true}, {"target_date": "2026-06-07", "predicted": 63.01, "actual": 76.53, "lower": 59.28, "upper": 66.73, "abs_error": 13.52, "direction_correct": true, "in_band": false}, {"target_date": "2026-06-08", "predicted": 65.44, "actual": 68.21, "lower": 54.51, "upper": 76.36, "abs_error": 2.77, "direction_correct": true, "in_band": true}, {"target_date": "2026-06-09", "predicted": 66.84, "actual": 63.79, "lower": 57.15, "upper": 76.52, "abs_error": 3.05, "direction_correct": true, "in_band": true}, {"target_date": "2026-06-10", "predicted": 66.63, "actual": 64.13, "lower": 56.7, "upper": 76.57, "abs_error": 2.5, "direction_correct": true, "in_band": true}, {"target_date": "2026-06-11", "predicted": 66.37, "actual": 67.11, "lower": 56.14, "upper": 76.6, "abs_error": 0.74, "direction_correct": true, "in_band": true}], "summary": "回测 20 天窗口 / 3 horizon; 最佳 horizon=1天 (方向准确率 81%); 最差 horizon=3天 (79%); horizon=1 平均 MAE=3.85"}, "narrative": {"date": "2026-06-12", "title": "宏观策略简报 · 2026-06-12", "sections": [{"heading": "宏观画像", "body": "今日宏观情绪指数 N/A。政策风向判定为「中性」。主题词集中在 暂未提取, 主导产业为 暂未识别。综合决策信号: HOLD (分数 -0.14, 置信 8%)。"}, {"heading": "政策与产业风向", "body": "AI 核心洞察: N/A\n\n市场联动: mixed。近期主题包括 基金, 消费与内需, 村镇。"}, {"heading": "风险与机会", "body": "异常检测触发 3 项:\n- sentiment_index Z=4.948 (spike_high)\n- policy_stance_score Z=3.776 (spike_high)\n- attention_entropy Z=3.591 (spike_high)\n\n恐慌指数 24.6 (calm), 历史回测方向准确率 N/A。"}, {"heading": "操作建议", "body": "建议动作: **HOLD**\n\n主要依据: 异常风险=high, 触发 3 项; 恐慌指数 24.6 (calm); 主题分布熵=0.10 (Top: 基金, 消费与内需, 村镇)\n\n风险点: 异常风险=high, 触发 3 项; 主题分布熵=0.10 (Top: 基金, 消费与内需, 村镇)\n\n行业视角: 医疗健康=观望, 制造业=观望, 金融=观望"}, {"heading": "展望", "body": "预测: 预测次日整体偏空 (下跌指标 2/4) (明日情绪 None, 今日 None)\n\n历史相似情境: (暂无)"}], "word_count": 530, "generated_by": "template", "model": "", "summary": "今日宏观情绪指数 N/A。政策风向判定为「中性」。主题词集中在 暂未提取, 主导产业为 暂未识别。综合决策信号: HOLD (分数 -0.14, 置信 8%)。"}};
+
+(function() {
+  // ===== HERO: 信号引擎 =====
+  const sig = ADVANCED.signal;
+  if (sig && sig.action) {
+    document.getElementById('sig-action').textContent = sig.action;
+    document.getElementById('sig-action').className = 'signal-action action-' + sig.action;
+    document.getElementById('sig-score').textContent =
+      `score: ${(sig.score || 0).toFixed(3)} · confidence: ${((sig.confidence || 0) * 100).toFixed(0)}%`;
+    document.getElementById('sig-bar').style.width = ((sig.confidence || 0) * 100) + '%';
+    const reasonsUl = document.getElementById('sig-reasons');
+    if (sig.top_reasons && sig.top_reasons.length) {
+      reasonsUl.innerHTML = sig.top_reasons.slice(0, 5).map(r => `<li>${r}</li>`).join('');
+    }
+    const indUl = document.getElementById('sig-industries');
+    if (sig.industry_signals && sig.industry_signals.length) {
+      indUl.innerHTML = sig.industry_signals.slice(0, 5).map(i =>
+        `<li>${i.industry} · <b>${i.action}</b> (${(i.score||0).toFixed(2)})</li>`).join('');
+    }
+  }
+
+  // ===== HERO: 高管简报 =====
+  const nar = ADVANCED.narrative;
+  if (nar && nar.sections && nar.sections.length) {
+    document.getElementById('narr-source').textContent =
+      nar.generated_by === 'llm' ? '🤖 LLM (' + (nar.model || '?') + ')' : '📝 模板';
+    document.getElementById('narr-sections').innerHTML = nar.sections.map(s => `
+      <div class="narrative-section">
+        <h4>${s.heading}</h4>
+        <p>${(s.body || '').replace(/</g, '&lt;')}</p>
+      </div>`).join('');
+  }
+
+  // ===== KPI 卡片 =====
+  const kpiHtml = [];
+  const t = {"article_count": 29, "attention_entropy": 0.9738, "attention_top_share": 0.3584, "date": "2026-06-12", "event_count": 8, "industry_count": 10, "policy_count": 0, "policy_stance_score": 1.0, "raw_json": "{\"attention_entropy\": 0.9738, \"attention_top_share\": 0.3584, \"sentiment_index\": 87.5, \"sentiment_dispersion\": 0.0645, \"policy_stance_score\": 1.0, \"policy_confidence\": 0.72, \"industry_breadth\": 0.8333, \"event_density\": 1.3333, \"intensity_label\": \"\u9ad8\u5ea6\u5206\u6563\", \"sentiment_label\": \"\u6781\u5ea6\u770b\u591a\"}", "sentiment_index": 87.5, "total_words": 12875, "unique_keywords": 50};
+  if (t) {
+    const items = [
+      { lbl: '情绪指数', val: t.sentiment_index?.toFixed(1) || '?', cls: t.sentiment_index>=60?'bull':(t.sentiment_index<=40?'bear':'neutral'), sub: (t.article_count||0)+' 篇文章' },
+      { lbl: '政策倾向', val: t.policy_stance_score>0.3?'扩张':(t.policy_stance_score<-0.3?'收紧':'中性'), cls: t.policy_stance_score>0.1?'bull':(t.policy_stance_score<-0.1?'bear':'neutral'), sub: '得分 '+(t.policy_stance_score||0).toFixed(2) },
+      { lbl: '注意力熵', val: (t.attention_entropy||0).toFixed(2), cls: 'accent', sub: t.attention_entropy>=0.85?'话题分散':'话题集中' },
+      { lbl: '头部集中', val: (t.attention_top_share||0).toFixed(2), cls: 'accent', sub: 'top10 占比' },
+      { lbl: '恐慌指数', val: ADVANCED.volatility?.index?.toFixed(1) || '?', cls: ADVANCED.volatility?.level==='fear'||ADVANCED.volatility?.level==='extreme_fear'?'bear':'accent', sub: ADVANCED.volatility?.level || '—' },
+      { lbl: '异常风险', val: ADVANCED.anomaly?.overall_risk || '—', cls: ADVANCED.anomaly?.overall_risk==='high'||ADVANCED.anomaly?.overall_risk==='extreme'?'bear':(ADVANCED.anomaly?.overall_risk==='low'?'bull':'neutral'), sub: (ADVANCED.anomaly?.signals||[]).length + ' 项触发' },
+      { lbl: '文章总数', val: t.article_count||0, cls: 'accent', sub: (t.total_words||0) + ' 字' },
+      { lbl: '产业数', val: t.industry_count||0, cls: 'accent', sub: '命中产业' },
+    ];
+    items.forEach(i => {
+      kpiHtml.push(`<div class="kpi ${i.cls}"><div class="lbl">${i.lbl}</div><div class="val">${i.val}</div><div class="sub">${i.sub}</div></div>`);
+    });
+  }
+  document.getElementById('kpis').innerHTML = kpiHtml.join('');
+
+  // ===== 基础 8 图 =====
+  const metrics = [{"date": "2026-05-29", "article_count": 27, "total_words": 9450, "unique_keywords": 86, "policy_stance_score": 0.345, "sentiment_index": 61.64, "attention_entropy": 0.783, "attention_top_share": 0.3, "industry_count": 5, "policy_count": 0, "event_count": 3, "raw_json": ""}, {"date": "2026-05-30", "article_count": 51, "total_words": 17850, "unique_keywords": 48, "policy_stance_score": 0.382, "sentiment_index": 64.07, "attention_entropy": 0.766, "attention_top_share": 0.314, "industry_count": 7, "policy_count": 0, "event_count": 0, "raw_json": ""}, {"date": "2026-05-31", "article_count": 47, "total_words": 16450, "unique_keywords": 67, "policy_stance_score": -0.11, "sentiment_index": 50.07, "attention_entropy": 0.788, "attention_top_share": 0.437, "industry_count": 5, "policy_count": 4, "event_count": 4, "raw_json": ""}, {"date": "2026-06-01", "article_count": 48, "total_words": 16800, "unique_keywords": 106, "policy_stance_score": 0.329, "sentiment_index": 65.17, "attention_entropy": 0.814, "attention_top_share": 0.478, "industry_count": 6, "policy_count": 2, "event_count": 5, "raw_json": ""}, {"date": "2026-06-02", "article_count": 34, "total_words": 11900, "unique_keywords": 40, "policy_stance_score": -0.026, "sentiment_index": 62.71, "attention_entropy": 0.756, "attention_top_share": 0.305, "industry_count": 7, "policy_count": 4, "event_count": 1, "raw_json": ""}, {"date": "2026-06-03", "article_count": 35, "total_words": 12250, "unique_keywords": 75, "policy_stance_score": 0.242, "sentiment_index": 60.83, "attention_entropy": 0.778, "attention_top_share": 0.526, "industry_count": 5, "policy_count": 4, "event_count": 0, "raw_json": ""}, {"date": "2026-06-04", "article_count": 35, "total_words": 12250, "unique_keywords": 100, "policy_stance_score": -0.05, "sentiment_index": 64.81, "attention_entropy": 0.773, "attention_top_share": 0.534, "industry_count": 7, "policy_count": 3, "event_count": 4, "raw_json": ""}, {"date": "2026-06-05", "article_count": 23, "total_words": 8050, "unique_keywords": 52, "policy_stance_score": -0.067, "sentiment_index": 66.04, "attention_entropy": 0.775, "attention_top_share": 0.408, "industry_count": 6, "policy_count": 3, "event_count": 3, "raw_json": ""}, {"date": "2026-06-06", "article_count": 48, "total_words": 16800, "unique_keywords": 57, "policy_stance_score": 0.31, "sentiment_index": 61.96, "attention_entropy": 0.85, "attention_top_share": 0.327, "industry_count": 4, "policy_count": 4, "event_count": 1, "raw_json": ""}, {"date": "2026-06-07", "article_count": 54, "total_words": 18900, "unique_keywords": 41, "policy_stance_score": 0.124, "sentiment_index": 76.53, "attention_entropy": 0.862, "attention_top_share": 0.319, "industry_count": 7, "policy_count": 0, "event_count": 0, "raw_json": ""}, {"date": "2026-06-08", "article_count": 45, "total_words": 15750, "unique_keywords": 47, "policy_stance_score": 0.448, "sentiment_index": 68.21, "attention_entropy": 0.865, "attention_top_share": 0.342, "industry_count": 6, "policy_count": 1, "event_count": 9, "raw_json": ""}, {"date": "2026-06-09", "article_count": 55, "total_words": 19250, "unique_keywords": 102, "policy_stance_score": -0.198, "sentiment_index": 63.79, "attention_entropy": 0.824, "attention_top_share": 0.532, "industry_count": 6, "policy_count": 3, "event_count": 6, "raw_json": ""}, {"date": "2026-06-10", "article_count": 23, "total_words": 8050, "unique_keywords": 46, "policy_stance_score": 0.008, "sentiment_index": 64.13, "attention_entropy": 0.887, "attention_top_share": 0.445, "industry_count": 7, "policy_count": 2, "event_count": 2, "raw_json": ""}, {"date": "2026-06-11", "article_count": 24, "total_words": 8400, "unique_keywords": 116, "policy_stance_score": 0.152, "sentiment_index": 67.11, "attention_entropy": 0.88, "attention_top_share": 0.339, "industry_count": 7, "policy_count": 1, "event_count": 3, "raw_json": ""}, {"date": "2026-06-12", "article_count": 29, "total_words": 12875, "unique_keywords": 50, "policy_stance_score": 1.0, "sentiment_index": 87.5, "attention_entropy": 0.9738, "attention_top_share": 0.3584, "industry_count": 10, "policy_count": 0, "event_count": 8, "raw_json": "{\"attention_entropy\": 0.9738, \"attention_top_share\": 0.3584, \"sentiment_index\": 87.5, \"sentiment_dispersion\": 0.0645, \"policy_stance_score\": 1.0, \"policy_confidence\": 0.72, \"industry_breadth\": 0.8333, \"event_density\": 1.3333, \"intensity_label\": \"高度分散\", \"sentiment_label\": \"极度看多\"}"}];
+  const sortedM = metrics.slice().sort((a,b) => (a.date>b.date?1:-1));
+
+  // 1. 情绪
+  Plotly.newPlot('chart-sentiment', [{
+    type: 'scatter', mode: 'lines+markers',
+    x: sortedM.map(m=>m.date), y: sortedM.map(m=>m.sentiment_index),
+    line: { color: COLORS.accent, width: 2 },
+    marker: { color: sortedM.map(m => m.sentiment_index>=60?COLORS.bull:(m.sentiment_index<=40?COLORS.bear:COLORS.neutral)), size: 7 },
+    fill: 'tozeroy', fillcolor: 'rgba(88,166,255,0.08)',
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {range:[0,100]}) }), {displayModeBar:false});
+
+  // 2. 政策
+  Plotly.newPlot('chart-policy', [{
+    type: 'bar',
+    x: sortedM.map(m=>m.date), y: sortedM.map(m=>m.policy_stance_score),
+    marker: { color: sortedM.map(m => m.policy_stance_score>0.1?COLORS.bull:(m.policy_stance_score<-0.1?COLORS.bear:COLORS.neutral)) },
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {range:[-1.2,1.2]}) }), {displayModeBar:false});
+
+  // 3. 注意力
+  Plotly.newPlot('chart-attention', [
+    { type:'scatter', mode:'lines+markers', x:sortedM.map(m=>m.date), y:sortedM.map(m=>m.attention_entropy), name:'注意力熵', line:{color:COLORS.accent,width:2} },
+    { type:'scatter', mode:'lines+markers', x:sortedM.map(m=>m.date), y:sortedM.map(m=>m.attention_top_share), name:'头部集中', line:{color:COLORS.neutral,width:2} },
+  ], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {range:[0,1.05]}) }), {displayModeBar:false});
+
+  // 4. 主题词趋势
+  const kwSeries = [{"dates": ["2026-06-12"], "name": "\u5e02\u573a", "values": [118]}, {"dates": ["2026-06-12"], "name": "\u6709\u9650\u516c\u53f8", "values": [109]}, {"dates": ["2026-06-12"], "name": "\u80a1\u4efd", "values": [102]}, {"dates": ["2026-06-12"], "name": "\u6307\u6570", "values": [78]}, {"dates": ["2026-06-12"], "name": "\u6570\u636e", "values": [73]}];
+  Plotly.newPlot('chart-keyword-trend',
+    kwSeries.map(s => ({type:'scatter', mode:'lines+markers', x:s.dates, y:s.values, name:s.name, line:{width:2}, marker:{size:5}})),
+    PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+
+  // 16. 主题词 Top 15
+  const kws = ["\u5e02\u573a", "\u6709\u9650\u516c\u53f8", "\u80a1\u4efd", "\u6307\u6570", "\u6570\u636e", "\u4ebf\u5143", "\u91d1\u521a\u77f3", "\u98ce\u9669", "\u8d44\u4ea7", "\u8bc1\u5238", "\u6295\u8d44\u8005", "\u79d1\u6280", "\u4ea7\u54c1", "\u53d1\u884c", "\u9000\u5e02"];
+  const kwv = [118, 109, 102, 78, 73, 66, 58, 54, 53, 52, 52, 51, 48, 47, 47];
+  const kwf = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false];
+  Plotly.newPlot('chart-keywords', [{
+    type:'bar', orientation:'h', x:kwv, y:kws,
+    marker:{color:kwf.map(f => f?COLORS.accent:'#30363d')},
+    text:kwv, textposition:'outside',
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:{autorange:'reversed', gridcolor:COLORS.grid}, height:400 }), {displayModeBar:false});
+
+  // 17. 产业热度
+  const indLabels = ["\u533b\u7597\u5065\u5eb7", "\u5236\u9020\u4e1a", "\u534a\u5bfc\u4f53", "\u91d1\u878d", "\u4eba\u5de5\u667a\u80fd", "\u8d35\u91d1\u5c5e", "\u65b0\u80fd\u6e90", "\u6d88\u8d39"];
+  const indHits = [14, 4, 4, 4, 3, 3, 2, 2];
+  const indStances = ["\u4e2d\u6027", "\u4e2d\u6027", "\u5229\u597d", "\u5229\u597d", "\u5229\u597d", "\u5229\u597d", "\u5229\u597d", "\u5229\u597d"];
+  const indColors = indStances.map(s => s==='利好'?COLORS.bull:(s==='利空'?COLORS.bear:COLORS.neutral));
+  Plotly.newPlot('chart-industries', [{
+    type:'bar', x:indLabels, y:indHits,
+    marker:{color:indColors}, text:indHits, textposition:'outside',
+  }], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{tickangle:-30, gridcolor:COLORS.grid}, height:380 }), {displayModeBar:false});
+
+  // ===== 5. 异常 Z-score =====
+  const anom = ADVANCED.anomaly;
+  if (anom && anom.signals && anom.signals.length) {
+    const colors = anom.signals.map(s => s.severity==='critical'?COLORS.bear:(s.severity==='warning'?'#ff9b3d':COLORS.neutral));
+    Plotly.newPlot('chart-anomaly', [{
+      type:'bar', orientation:'h',
+      x:anom.signals.map(s => s.z_score), y:anom.signals.map(s => s.metric),
+      marker:{color:colors},
+      text:anom.signals.map(s => `Z=${(s.z_score||0).toFixed(2)}`), textposition:'outside',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{title:'Z-score', gridcolor:COLORS.grid, zerolinecolor:COLORS.text, zerolinewidth:1}, yaxis:{autorange:'reversed', gridcolor:COLORS.grid} }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-anomaly').innerHTML = '<div class="meta" style="padding:20px">无异常</div>';
+  }
+
+  // ===== 6. 预测 vs 实际 =====
+  const fc = ADVANCED.forecast;
+  if (fc && fc.forecasts && fc.forecasts.length) {
+    const traces = [];
+    sortedM.slice(-14).forEach((m, idx) => {
+      traces.push({
+        type:'scatter', mode:'lines+markers', x: [m.date], y:[m.sentiment_index],
+        marker:{color:COLORS.neutral,size:6}, showlegend:false, hoverinfo:'skip',
+      });
+    });
+    fc.forecasts.forEach(f => {
+      traces.push({
+        type:'scatter', mode:'lines+markers',
+        x: [fc.base_date, fc.target_date], y: [sortedM.length?sortedM[sortedM.length-1].sentiment_index:50, f.predicted],
+        line:{color:COLORS.accent2, width:3, dash:'dot'},
+        marker:{color:COLORS.accent2, size:10, symbol:'diamond'},
+        name: f.metric + ' 预测',
+      });
+      // 置信带
+      traces.push({
+        type:'scatter', mode:'lines',
+        x: [fc.base_date, fc.target_date], y:[sortedM.length?sortedM[sortedM.length-1].sentiment_index:50, f.lower],
+        line:{color:COLORS.accent2, width:0}, showlegend:false, hoverinfo:'skip',
+      });
+      traces.push({
+        type:'scatter', mode:'lines',
+        x: [fc.base_date, fc.target_date], y:[sortedM.length?sortedM[sortedM.length-1].sentiment_index:50, f.upper],
+        line:{color:COLORS.accent2, width:0}, fill:'tonexty', fillcolor:'rgba(163,113,247,0.15)',
+        showlegend:false, hoverinfo:'skip',
+      });
+    });
+    Plotly.newPlot('chart-forecast', traces, PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+  } else {
+    document.getElementById('chart-forecast').innerHTML = '<div class="meta" style="padding:20px">无预测数据</div>';
+  }
+
+  // ===== 7. 波动率 =====
+  const vol = ADVANCED.volatility;
+  if (vol && vol.history && vol.history.length) {
+    const hist = vol.history.slice(-30);
+    Plotly.newPlot('chart-volatility', [
+      { type:'scatter', mode:'lines+markers', x:hist.map(h=>h.date), y:hist.map(h=>h.index),
+        line:{color:COLORS.accent2, width:2}, fill:'tozeroy', fillcolor:'rgba(163,113,247,0.1)',
+        marker:{size:6, color: hist.map(h => h.index>=60?COLORS.bear:(h.index<=30?COLORS.bull:COLORS.neutral))},
+        name:'恐慌指数',
+      },
+      { type:'scatter', mode:'lines', x:[hist[0]?.date, hist[hist.length-1]?.date], y:[50,50],
+        line:{color:COLORS.text, dash:'dot', width:1}, showlegend:false, hoverinfo:'skip' },
+    ], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{range:[0,100]}) }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-volatility').innerHTML = '<div class="meta" style="padding:20px">无波动率数据</div>';
+  }
+
+  // ===== 8. 产业-市场联动 =====
+  const mkt = ADVANCED.market;
+  if (mkt && mkt.industries && mkt.industries.length) {
+    const names = mkt.industries.map(i => i.industry);
+    const pcts = mkt.industries.map(i => (i.avg_pct_change||0)*100);
+    Plotly.newPlot('chart-market', [{
+      type:'bar', x:names, y:pcts,
+      marker:{color: pcts.map(p => p>0?COLORS.bull:(p<0?COLORS.bear:COLORS.neutral))},
+      text:pcts.map(p => (p||0).toFixed(2)+'%'), textposition:'outside',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{title:'涨跌幅%'}), xaxis:{tickangle:-30, gridcolor:COLORS.grid}, height:380 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-market').innerHTML = '<div class="meta" style="padding:20px">非交易时段或无市场数据</div>';
+  }
+
+  // ===== 9. 宏观指标 =====
+  const macro = ADVANCED.macro;
+  if (macro && macro.indicators && macro.indicators.length) {
+    const traces = macro.indicators.slice(0, 5).map(ind => ({
+      type:'scatter', mode:'lines+markers',
+      x: ind.history ? ind.history.map(h => h.date) : [macro.as_of],
+      y: ind.history ? ind.history.map(h => h.value) : [ind.latest],
+      name: ind.name, line:{width:2}, marker:{size:6},
+    }));
+    Plotly.newPlot('chart-macro', traces, PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+  } else {
+    document.getElementById('chart-macro').innerHTML = '<div class="meta" style="padding:20px">无宏观数据</div>';
+  }
+
+  // ===== 10. LDA 主题 Treemap =====
+  const topics = ADVANCED.topics;
+  if (topics && topics.topics && topics.topics.length) {
+    Plotly.newPlot('chart-topics', [{
+      type:'treemap',
+      labels: topics.topics.map(t => t.label + '<br>' + (t.top_words||[]).slice(0,3).join('·')),
+      parents: topics.topics.map(() => ''),
+      values: topics.topics.map(t => Math.max(t.dominance, 0.01)),
+      text: topics.topics.map(t => (t.top_words||[]).slice(0,5).join(' · ')),
+      textinfo: 'label+text',
+      marker: { colorscale: 'Portland', cmid: topics.topics.length/2 },
+    }], PLOTLY_LAYOUT_BASE, {displayModeBar:false});
+  } else {
+    document.getElementById('chart-topics').innerHTML = '<div class="meta" style="padding:20px">无主题数据</div>';
+  }
+
+  // ===== 11. 事件时间线 =====
+  const es = ADVANCED.events_study;
+  if (es && es.events && es.events.length) {
+    Plotly.newPlot('chart-events', [{
+      type:'scatter', mode:'markers',
+      x: es.events.map((e,i) => i+1),
+      y: es.events.map(e => (e.intensity||0)*5),
+      marker:{size: es.events.map(e => Math.max(8, (e.intensity||0)*30)),
+              color: es.events.map(e => (e.intensity||0)>=0.7?COLORS.bear:((e.intensity||0)>=0.4?'#ff9b3d':COLORS.neutral)),
+              line:{color:COLORS.text, width:1}},
+      text: es.events.map(e => `${e.subject||''} ${e.action||''} ${e.object||''}`),
+      hovertemplate: '%{text}<extra>%{y:.1f}</extra>',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{title:'事件序号'}, yaxis:{title:'强度', range:[0,5]}, height:380 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-events').innerHTML = '<div class="meta" style="padding:20px">无事件数据</div>';
+  }
+
+  // ===== 12. RAG 相似度 =====
+  const rag = ADVANCED.rag;
+  if (rag && rag.recalls && rag.recalls.length) {
+    Plotly.newPlot('chart-rag', [{
+      type:'bar',
+      x: rag.recalls.map(r => r.date),
+      y: rag.recalls.map(r => r.score||0),
+      marker:{color: rag.recalls.map(r => r.score>=0.7?COLORS.bull:(r.score>=0.4?COLORS.neutral:COLORS.muted))},
+      text: rag.recalls.map(r => (r.score||0).toFixed(3)), textposition:'outside',
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, { yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{range:[0,1], title:'TF-IDF 余弦相似度'}), height:340 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-rag').innerHTML = '<div class="meta" style="padding:20px">无历史报告可检索</div>';
+  }
+
+  // ===== 13. 因果 Sankey 简化版 =====
+  const caus = ADVANCED.causal;
+  if (caus && caus.chains && caus.chains.length) {
+    const labels = [], sources = [], targets = [], values = [];
+    caus.chains.forEach((c, i) => {
+      labels.push(c.policy, c.mediator, c.market_response);
+      if (i === 0) {
+        sources.push(0, 1);
+        targets.push(1, 2);
+        values.push(c.strength||1, c.strength||1);
+      }
+    });
+    Plotly.newPlot('chart-causal', [{
+      type:'sankey',
+      node:{label:Array.from(new Set(labels)), pad:15, thickness:20,
+            color:[COLORS.accent, COLORS.accent2, COLORS.bull]},
+      link:{source:sources, target:targets, value:values,
+            color:'rgba(88,166,255,0.3)'},
+    }], Object.assign({}, PLOTLY_LAYOUT_BASE, {height:340}), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-causal').innerHTML = '<div class="meta" style="padding:20px">无因果分析结果</div>';
+  }
+
+  // ===== 14. 多信号分解 =====
+  if (sig && sig.signals && sig.signals.length) {
+    Plotly.newPlot('chart-signal', [
+      { type:'bar', x: sig.signals.map(s => s.score * (s.weight||0.1)),
+        y: sig.signals.map(s => s.name),
+        orientation:'h',
+        marker:{color: sig.signals.map(s => s.score>0?COLORS.bull:(s.score<0?COLORS.bear:COLORS.neutral))},
+        text: sig.signals.map(s => (s.score*(s.weight||0.1)).toFixed(3)),
+        textposition:'outside',
+      },
+    ], Object.assign({}, PLOTLY_LAYOUT_BASE, { xaxis:{title:'score × weight', gridcolor:COLORS.grid}, yaxis:{autorange:'reversed', gridcolor:COLORS.grid}, height:380 }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-signal').innerHTML = '<div class="meta" style="padding:20px">无信号源</div>';
+  }
+
+  // ===== 15. 回测 =====
+  const bt = ADVANCED.backtest;
+  if (bt && bt.horizon_reports && bt.horizon_reports.length) {
+    const traces = [
+      { type:'bar', x: bt.horizon_reports.map(h=>h.horizon+'天'), y: bt.horizon_reports.map(h=>h.direction_accuracy*100),
+        marker:{color: COLORS.bull}, name:'方向准确率%', yaxis:'y' },
+      { type:'scatter', mode:'lines+markers', x: bt.horizon_reports.map(h=>h.horizon+'天'), y: bt.horizon_reports.map(h=>h.mae),
+        marker:{color:COLORS.bear, size:10}, name:'MAE', yaxis:'y2' },
+    ];
+    Plotly.newPlot('chart-backtest', traces, Object.assign({}, PLOTLY_LAYOUT_BASE, {
+      yaxis:Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis,{title:'方向准确率%', range:[0,100]}),
+      yaxis2:{title:'MAE', overlaying:'y', side:'right', gridcolor:'transparent', color:COLORS.text},
+      height:340,
+    }), {displayModeBar:false});
+  } else {
+    document.getElementById('chart-backtest').innerHTML = '<div class="meta" style="padding:20px">无回测数据</div>';
+  }
+})();
+</script>
+</body>
+</html>

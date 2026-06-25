@@ -1,0 +1,81 @@
+﻿# ============================================================
+# docker-compose.yml — 宏观经济智能分析平台 v6
+# 用法:
+#   docker compose build
+#   docker compose up -d
+#   docker compose logs -f
+#   curl http://localhost:8000/health
+# ============================================================
+version: "3.9"
+
+services:
+  macro-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: macro-intelligence:v6
+    container_name: macro-intelligence-v6
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # AI 路由 (minimax, 国内直连)
+      AI_PROVIDER: ${AI_PROVIDER:-custom}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.minimaxi.com/v1}
+      AI_MODEL: ${AI_MODEL:-MiniMax-M3}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_TIMEOUT: "60"
+      AI_MAX_RETRIES: "3"
+      AI_REFLECTION_MAX_ROUNDS: "2"
+      AI_REFLECTION_THRESHOLD: "0.7"
+      # 报告
+      REPORT_DATE: ""
+      # 爬虫
+      ENABLE_PEOPLE: "1"
+      ENABLE_CE: "1"
+      ENABLE_XINHUA: "0"
+      ENABLE_21CBH: "0"
+      ENABLE_GOV_PBOC: "0"
+      # Python
+      PYTHONIOENCODING: "utf-8"
+      PYTHONUNBUFFERED: "1"
+      TZ: "Asia/Shanghai"
+    volumes:
+      # 持久化时序数据库 + 历史报告
+      - macro-data:/app/data/historical
+      - macro-reports:/app/reports
+      - macro-dashboard:/app/dashboard
+      - macro-images:/app/images
+      - macro-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - macro-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+volumes:
+  macro-data:
+    driver: local
+  macro-reports:
+    driver: local
+  macro-dashboard:
+    driver: local
+  macro-images:
+    driver: local
+  macro-logs:
+    driver: local
+
+networks:
+  macro-net:
+    driver: bridge

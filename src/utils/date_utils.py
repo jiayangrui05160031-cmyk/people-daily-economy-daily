@@ -46,3 +46,16 @@ def resolve_target_date(override: str = "") -> date:
     if REPORT_DATE_OVERRIDE:
         return parse_date(REPORT_DATE_OVERRIDE)
     return date.today()
+
+def previous_business_day(d):
+    """前一交易日(跳过周末)。"""
+    cur = d - __import__('datetime').timedelta(days=1)
+    while cur.weekday() >= 5:
+        cur = cur - __import__('datetime').timedelta(days=1)
+    return cur
+
+
+def same_weekday_last_week(d):
+    """上周同日(同 weekday)。"""
+    return d - __import__('datetime').timedelta(days=7)
+

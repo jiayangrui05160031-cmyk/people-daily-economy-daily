@@ -1,0 +1,66 @@
+﻿# ============================================================
+# .dockerignore — Docker 构建排除
+# ============================================================
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+
+# Git / IDE
+.git/
+.gitignore
+.gitattributes
+.github/
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 临时 / 缓存
+*.log
+logs/
+*.tmp
+_tmp_*.py
+_test_*.py
+
+# 数据 (运行时由卷挂载, 不进镜像)
+data/raw/
+data/processed/
+data/historical/
+data/cache/
+__pycache__/
+*.sqlite3
+*.db
+
+# 构建产物
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# 测试 / 文档
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.egg
+
+# Node
+node_modules/
+.npm/
+.pnp/
+.pnp.js
+
+# 媒体 (运行时生成)
+images/*.png
+dashboard/*.html
+reports/*.md
+!images/.gitkeep
+!dashboard/.gitkeep
+!reports/.gitkeep
