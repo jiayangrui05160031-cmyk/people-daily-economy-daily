@@ -458,13 +458,16 @@ def _llm_judge_dimension(persona: Dict[str, Any], dimension: str,
 
     try:
         # 尝试调用 LLM (model_router 是 src.ai.router.Router 实例)
+        # chat 返回 (text, model, prompt_tokens, completion_tokens) tuple
+        # 关闭 thinking 模式, 节省 token + 加快响应 (我们只要 JSON score)
         resp = model_router.chat(
-            prompt=prompt,
+            messages=[{"role": "user", "content": prompt}],
             temperature=persona.get("temperature", 0.3),
             max_tokens=200,
-            prefer="reasoning",
+            disable_thinking=True,
         )
-        content = (resp.get("content") or "").strip()
+        # resp 是 tuple: (text, model, pt, ct)
+        content = (resp[0] if isinstance(resp, tuple) else resp).strip()
         # 提取 JSON (可能被包在 ```json ... ``` 里)
         m = re.search(r"\{[^{}]*\"score\"[^{}]*\}", content, re.DOTALL)
         if not m:
@@ -697,12 +700,18 @@ def _check_router_available(model_router: Any) -> bool:
         return False
     try:
         # 试探一下: 用极小 prompt, 看是否成功
+        # 关闭 thinking 模式, 避免 max_tokens=5 被 <think>...</think> 占满
         resp = model_router.chat(
-            prompt="ping",
+            messages=[{"role": "user", "content": "ping"}],
             temperature=0.0,
-            max_tokens=5,
+            max_tokens=20,
+            disable_thinking=True,
         )
-        return resp is not None
+        # chat 返回 (text, model, pt, ct) tuple
+        if not resp:
+            return False
+        text = resp[0] if isinstance(resp, tuple) else resp
+        return bool(text and text.strip())
     except Exception:
         return False
 
