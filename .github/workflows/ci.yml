@@ -1,0 +1,175 @@
+﻿# ============================================================
+# .github/workflows/ci.yml — GitHub Actions CI
+# 触发: push / pull_request 到 main
+# 步骤: lint -> smoke_test -> Docker build -> OpenAPI schema
+# ============================================================
+name: CI
+
+on:
+  push:
+    branches: [main, master, dev, develop]
+  pull_request:
+    branches: [main, master, dev, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+  PYTHONIOENCODING: utf-8
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  # ============================================
+  # Job 1: Lint + 编译检查
+  # ============================================
+  lint:
+    name: Lint (pyflakes)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install lint deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyflakes ruff
+
+      - name: pyflakes
+        run: |
+          pyflakes src/ main.py smoke_test.py
+
+      - name: ruff (best-effort)
+        continue-on-error: true
+        run: |
+          ruff check src/ main.py smoke_test.py || true
+
+      - name: Python compile check
+        run: |
+          python -m compileall -q src/ main.py smoke_test.py
+
+  # ============================================
+  # Job 2: smoke_test (核心模块)
+  # ============================================
+  smoke-test:
+    name: Smoke test (core modules)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install jieba dict
+        run: |
+          python -c "import jieba; jieba.initialize()"
+
+      - name: Run smoke test (fast mode, mock data)
+        env:
+          AI_PROVIDER: custom
+          AI_BASE_URL: https://api.minimaxi.com/v1
+          AI_MODEL: MiniMax-M3
+          AI_API_KEY: ${{ secrets.AI_API_KEY || 'sk-cp-test' }}
+        run: |
+          python -X utf8 smoke_test.py --fast
+
+      - name: Verify smoke output
+        if: always()
+        run: |
+          if [ -f logs/smoke_test.log ]; then
+            tail -50 logs/smoke_test.log
+          fi
+
+  # ============================================
+  # Job 3: Docker 镜像构建
+  # ============================================
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: smoke-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        run: |
+          docker build --tag macro-intelligence:test --load .
+
+      - name: Image size
+        run: |
+          docker images macro-intelligence:test --format "{{.Repository}}:{{.Tag}} {{.Size}}"
+
+  # ============================================
+  # Job 4: 文档 / OpenAPI schema 完整性检查
+  # ============================================
+  schema-check:
+    name: OpenAPI schema check
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install minimal deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify OpenAPI schema completeness
+        run: |
+          python -X utf8 -c "
+          import sys
+          sys.path.insert(0, '.')
+          from src.api.server import app
+          schema = app.openapi()
+          assert schema['info']['version'] >= '9.0.0', 'API version must be >= v9'
+          assert 'paths' in schema and len(schema['paths']) >= 25, 'API must have 25+ endpoints'
+          print('API version:', schema['info']['version'])
+          print('Endpoints:', len(schema['paths']))
+          for p in sorted(schema['paths'].keys()):
+              methods = [m.upper() for m in schema['paths'][p].keys() if m.upper() in ('GET','POST','PUT','DELETE','PATCH')]
+              print('  ' + ' | '.join(methods).ljust(12) + ' ' + p)
+          print('OK')
+          "
+
+  # ============================================
+  # Job 5: 总体汇总
+  # ============================================
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [lint, smoke-test, docker-build, schema-check]
+    if: always()
+    steps:
+      - name: CI Result
+        run: |
+          echo "## CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- lint: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- smoke-test: ${{ needs.smoke-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- docker-build: ${{ needs.docker-build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- schema-check: ${{ needs.schema-check.result }}" >> $GITHUB_STEP_SUMMARY
+          cat $GITHUB_STEP_SUMMARY

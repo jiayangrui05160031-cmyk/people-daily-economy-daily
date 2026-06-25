@@ -71,6 +71,3 @@ reports/*.md
 scripts/_probe_*.py
 scripts/verify_selectors.py
 notebooks/*.ipynb
-
-# 临时: workflow scope 未授权, 见 push log
-.github/workflows/*.yml
