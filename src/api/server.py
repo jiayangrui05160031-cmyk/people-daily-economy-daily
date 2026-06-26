@@ -927,15 +927,19 @@ async def ai_dedup(body: DedupBody) -> Dict[str, Any]:
     return _to_json(r)
 
 # ============================================================
-# 10. Embedding 向量 RAG
+# 10. Embedding 向量 RAG (v9: route to retrieval.VectorRetriever)
 # ============================================================
 _EMBED_RAG_INSTANCE = None
 
 def _get_embed_rag():
+    """v9: returns a VectorRetriever. The legacy `EmbedRAG` class
+    (src.analysis.embed_rag) was deleted because it duplicated
+    embeddings.EmbeddingStore. server.py's /v6/embed/* endpoints now
+    use the new retrieval/ subpackage."""
     global _EMBED_RAG_INSTANCE
     if _EMBED_RAG_INSTANCE is None:
-        from src.analysis.embed_rag import EmbedRAG
-        _EMBED_RAG_INSTANCE = EmbedRAG()
+        from src.retrieval import VectorRetriever
+        _EMBED_RAG_INSTANCE = VectorRetriever()
     return _EMBED_RAG_INSTANCE
 
 class EmbedAddBody(BaseModel):
@@ -946,8 +950,8 @@ class EmbedAddBody(BaseModel):
 @app.post("/v6/embed/add", tags=["v6-frontier"])
 async def embed_add(body: EmbedAddBody) -> Dict[str, Any]:
     rag = _get_embed_rag()
-    rag.add_document(body.doc_id, body.text, body.metadata or {})
-    return {"ok": True, "stats": rag.stats()}
+    rag.add(body.doc_id, body.text, body.metadata or {})
+    return {"ok": True, "stats": rag.backend_info()}
 
 class EmbedQueryBody(BaseModel):
     text: str = Field(..., min_length=1, max_length=500)
@@ -957,16 +961,16 @@ class EmbedQueryBody(BaseModel):
 @app.post("/v6/embed/query", tags=["v6-frontier"])
 async def embed_query(body: EmbedQueryBody) -> Dict[str, Any]:
     rag = _get_embed_rag()
-    hits = rag.query(body.text, top_k=body.top_k, min_score=body.min_score)
+    hits = rag.search(body.text, top_k=body.top_k, min_score=body.min_score)
     return {
         "query": body.text,
-        "backend": rag.stats()["backend"],
+        "backend": rag.backend_info().get("backend", "unknown"),
         "hits": [_to_json(h) for h in hits],
     }
 
 @app.get("/v6/embed/stats", tags=["v6-frontier"])
 async def embed_stats() -> Dict[str, Any]:
-    return _get_embed_rag().stats()
+    return _get_embed_rag().backend_info()
 
 # CLI 启动
 # ============================================================

@@ -1,16 +1,16 @@
-"""analysis.qa_assistant - LLM 智能问答 (RAG over 历史报告 + 行业知识)
+"""analysis.qa_assistant - LLM 智能问答 (v9 重构为编排器)
 
 让用户用自然语言提问宏观问题, 系统:
-  1) 从历史 reports/*.md + ai_report.payload_json 里检索 Top-K 相关片段 (TF-IDF)
+  1) 通过 retrieval/ 子包的 Retriever protocol 召回 Top-K 相关片段
+     - 缺省: LexicalRetriever (TF-IDF 跨期主题)
+     - 有 router+api_key: VectorRetriever (语义) + GraphRetriever (关系) 并联
   2) 从 daily_metric 拉时序数据 (近 30 天)
   3) 拼装 Prompt, 让 LLM 给出基于证据的答案 + 引用来源
 
 无 LLM 时降级为 extractive 答案 (取 Top-K 片段前 2 句), 保证总能用。
 
-典型用法:
-    from src.analysis.qa_assistant import ask
-    result = ask("近期降准对新能源板块有什么影响?", target_date="2026-06-12")
-    print(result.answer, result.citations)
+RAG 层已统一到 retrieval/ 子包, 见 src/retrieval/__init__.py。
+embedding-rag 重复实现 (embed_rag.py) 已删除。
 """
 from __future__ import annotations
 
@@ -20,23 +20,22 @@ from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import jieba
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-from src.config import REPORT_DIR, load_stopwords
 from src.storage import db as db_mod
 from src.storage import repository as repo
 from src.utils.date_utils import parse_date
 from src.utils.logger import get_logger
 
 logger = get_logger("analysis.qa_assistant")
-_STOP = load_stopwords()
+
+
+# ---------------------------------------------------------------------------
+# Citation (back-compat type used in REST responses / reports)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
 class Citation:
-    source: str       # 'report:2026-06-12.md' | 'ai_report:2026-06-12' | 'daily_metric:2026-06-10'
+    source: str       # 'lexical:report:2026-06-12.md' | 'vector:doc-1' | 'graph:community:3'
     date: str
     score: float      # 0~1
     snippet: str
@@ -63,87 +62,94 @@ class QAResult:
         return d
 
 
-# ============================================================
-# 1. 检索: 报告片段 + ai_report + 时序
-# ============================================================
+# ---------------------------------------------------------------------------
+# Retriever wiring (v9)
+# ---------------------------------------------------------------------------
+
+
+def _build_default_retrievers(router=None):
+    """Build the default Retriever set. Pure-function so it's testable."""
+    from src.retrieval import LexicalRetriever, VectorRetriever, GraphRetriever
+    retrievers = [LexicalRetriever()]
+    if router is not None and getattr(router, "api_key", None):
+        retrievers.append(VectorRetriever())
+        retrievers.append(GraphRetriever(router=router))
+    return retrievers
+
+
+def _hit_to_citation(hit) -> Citation:
+    return Citation(
+        source=f"{hit.source}:{hit.id}",
+        date=hit.metadata.get("date", ""),
+        score=hit.score,
+        snippet=hit.text[:200].replace("\n", " "),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Time-series snapshot
+# ---------------------------------------------------------------------------
+
+
+def _metrics_snapshot(target_date: str, lookback: int = 30) -> Tuple[Dict[str, float], List[str]]:
+    """拉最近 N 天 daily_metric, 返回均值 + 日期列表。"""
+    dates: List[str] = []
+    snap: Dict[str, float] = {}
+    try:
+        end = parse_date(target_date)
+        from datetime import timedelta
+        start = end - timedelta(days=lookback)
+        with db_mod.get_conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM daily_metric WHERE date BETWEEN ? AND ? ORDER BY date",
+                (start.isoformat(), end.isoformat()),
+            ).fetchall()
+        if not rows:
+            return snap, dates
+        dates = [r["date"] for r in rows]
+        for key in ("sentiment_index", "policy_stance_score", "attention_entropy",
+                    "industry_count", "policy_count", "event_count"):
+            vals = [r[key] for r in rows if r[key] is not None]
+            if vals:
+                snap[key] = round(sum(vals) / len(vals), 3)
+        snap["article_count_total"] = float(sum(r["article_count"] or 0 for r in rows))
+    except Exception as e:
+        logger.debug(f"metrics snapshot 失败: {e}")
+    return snap, dates
+
+
+# ---------------------------------------------------------------------------
+# Back-compat shims: keep the old _retrieve_* names exposed for any
+# external callers (server.py imports them only optionally now).
+# ---------------------------------------------------------------------------
+
+
 _SECTION_HEAD_RE = re.compile(r"^##\s+\d+\.\s+", re.MULTILINE)
 
 
 def _tokenize(text: str) -> str:
-    if not text:
-        return ""
-    text = re.sub(r"[\s\W]+", " ", text)
-    toks = [t for t in jieba.cut(text) if t.strip() and t not in _STOP and len(t) > 1]
-    return " ".join(toks)
+    """Back-compat: lexical retriever has its own copy."""
+    from src.retrieval.lexical import _tokenize as _t
+    return _t(text)
 
 
 def _chunk_markdown(text: str, max_chars: int = 400) -> List[str]:
-    """把 markdown 报告按章节切短 (每段 max_chars 字), 便于检索."""
-    if not text:
-        return []
-    # 按 ## 章节切
-    sections = re.split(r"\n##\s+", text)
-    chunks = []
-    for s in sections:
-        s = s.strip()
-        if not s:
-            continue
-        if len(s) <= max_chars:
-            chunks.append(s)
-        else:
-            # 切句
-            for i in range(0, len(s), max_chars):
-                chunks.append(s[i:i + max_chars])
-    return chunks
+    from src.retrieval.lexical import _chunk_markdown as _c
+    return _c(text, max_chars)
 
 
 def _retrieve_reports(query: str, top_k: int = 5) -> List[Citation]:
-    """从历史 reports/*.md 里检索相关片段."""
-    if not REPORT_DIR.exists():
-        return []
-    files = sorted(REPORT_DIR.glob("*.md"), key=lambda p: p.name, reverse=True)[:60]
-    corpus: List[Tuple[str, str]] = []  # (date, chunk)
-    for fp in files:
-        try:
-            text = fp.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        date_match = re.search(r"(\d{4}-\d{2}-\d{2})", fp.stem)
-        date = date_match.group(1) if date_match else fp.stem
-        for chunk in _chunk_markdown(text):
-            corpus.append((date, chunk))
-    if not corpus:
-        return []
-    try:
-        qvec = _tokenize(query)
-        cvecs = [_tokenize(c) for _, c in corpus]
-        if not qvec or not any(cvecs):
-            return []
-        vec = TfidfVectorizer(max_features=20000)
-        X = vec.fit_transform([qvec] + cvecs)
-        sims = cosine_similarity(X[0], X[1:]).flatten()
-        order = sims.argsort()[::-1][:top_k]
-        out = []
-        for idx in order:
-            score = float(sims[idx])
-            if score < 0.05:
-                continue
-            d, ch = corpus[idx]
-            out.append(Citation(
-                source=f"report:{d}.md",
-                date=d, score=round(score, 4),
-                snippet=ch[:200].replace("\n", " "),
-            ))
-        return out
-    except Exception as e:
-        logger.debug(f"report retrieval 失败: {e}")
-        return []
+    """Back-compat shim: returns Citation list using LexicalRetriever."""
+    from src.retrieval import LexicalRetriever
+    ret = LexicalRetriever()
+    return [_hit_to_citation(h) for h in ret.search(query, top_k=top_k)]
 
 
 def _retrieve_ai_payload(query: str, top_k: int = 3) -> List[Citation]:
-    """从 ai_report.payload_json 检索 (主题词匹配)."""
+    """主题词精确匹配 ai_report.payload_json, 不走 embedding (这是结构化字段匹配)."""
     out: List[Citation] = []
     try:
+        import jieba
         tokens = set(t for t in jieba.cut(query) if len(t) > 1)
         with db_mod.get_conn() as conn:
             rows = conn.execute(
@@ -173,81 +179,19 @@ def _retrieve_ai_payload(query: str, top_k: int = 3) -> List[Citation]:
         return []
 
 
-_EMBED_RAG_CACHE: Dict[str, Any] = {}
-
-
 def _retrieve_embed(query: str, target_date: str = "", top_k: int = 5,
                     router=None) -> List[Citation]:
-    """v6 升级: EmbedRAG (embedding 向量检索) 替代纯关键词. 失败降级."""
-    if not REPORT_DIR.exists():
-        return []
-    try:
-        from src.analysis.embed_rag import EmbedRAG
-    except Exception:
-        return []
-    files = sorted(REPORT_DIR.glob("*.md"), key=lambda p: p.name, reverse=True)[:30]
-    cache_key = f"{len(files)}|{files[0].name if files else 'none'}"
-    if _EMBED_RAG_CACHE.get("key") != cache_key or _EMBED_RAG_CACHE.get("rag") is None:
-        rag = EmbedRAG(router=router, backend="auto", dim=1024)
-        for fp in files:
-            try:
-                text = fp.read_text(encoding="utf-8")
-            except Exception:
-                continue
-            date_match = re.search(r"(\d{4}-\d{2}-\d{2})", fp.stem)
-            d = date_match.group(1) if date_match else fp.stem
-            head = text[:1800]
-            rag.add_document(doc_id=f"report:{d}", text=head,
-                             metadata={"date": d, "source": "report"})
-        _EMBED_RAG_CACHE["key"] = cache_key
-        _EMBED_RAG_CACHE["rag"] = rag
-    rag = _EMBED_RAG_CACHE["rag"]
-    try:
-        hits = rag.query(query, top_k=top_k, min_score=0.0)
-    except Exception as e:
-        logger.debug(f"embed query failed: {e}")
-        return []
-    out: List[Citation] = []
-    for h in hits:
-        out.append(Citation(
-            source=h.metadata.get("source", "embed") + ":" + h.id.split(":", 1)[-1],
-            date=h.metadata.get("date", ""),
-            score=h.score,
-            snippet=h.text[:200].replace(chr(10), " "),
-        ))
-    return out
+    """Back-compat shim: uses VectorRetriever instead of deleted EmbedRAG."""
+    from src.retrieval import VectorRetriever
+    return [_hit_to_citation(h)
+            for h in VectorRetriever().search(query, top_k=top_k)]
 
 
-def _metrics_snapshot(target_date: str, lookback: int = 30) -> Tuple[Dict[str, float], List[str]]:
-    """拉最近 N 天 daily_metric, 返回均值 + 日期列表."""
-    dates: List[str] = []
-    snap: Dict[str, float] = {}
-    try:
-        end = parse_date(target_date)
-        from datetime import timedelta
-        start = end - timedelta(days=lookback)
-        with db_mod.get_conn() as conn:
-            rows = conn.execute(
-                "SELECT * FROM daily_metric WHERE date BETWEEN ? AND ? ORDER BY date",
-                (start.isoformat(), end.isoformat()),
-            ).fetchall()
-        if not rows:
-            return snap, dates
-        dates = [r["date"] for r in rows]
-        for key in ("sentiment_index", "policy_stance_score", "attention_entropy",
-                    "industry_count", "policy_count", "event_count"):
-            vals = [r[key] for r in rows if r[key] is not None]
-            if vals:
-                snap[key] = round(sum(vals) / len(vals), 3)
-        snap["article_count_total"] = float(sum(r["article_count"] or 0 for r in rows))
-    except Exception as e:
-        logger.debug(f"metrics snapshot 失败: {e}")
-    return snap, dates
+# ---------------------------------------------------------------------------
+# Prompt + LLM
+# ---------------------------------------------------------------------------
 
 
-# ============================================================
-# 2. 拼装 + LLM
-# ============================================================
 SYSTEM_PROMPT = (
     "你是中国顶级宏观策略首席,服务大型机构投资人。基于给定的【历史报告片段】+"
     "【AI 主题词命中】+【近30天量化均值】,回答用户的宏观问题。\n"
@@ -294,28 +238,43 @@ def _template_answer(question: str, citations: List[Citation], snap: Dict[str, f
     return answer, round(min(0.7, top.score), 2)
 
 
+# ---------------------------------------------------------------------------
+# Main entry
+# ---------------------------------------------------------------------------
+
+
 def ask(question: str, target_date: str = "2026-06-12",
-        router: Any = None, top_k: int = 5) -> QAResult:
-    """主入口: 用户问问题 -> 检索 -> 拼装 -> LLM 回答."""
+        router: Any = None, top_k: int = 5,
+        retrievers: Optional[List] = None) -> QAResult:
+    """主入口: 用户问问题 -> 检索 -> 拼装 -> LLM 回答.
+
+    Parameters
+    ----------
+    retrievers : list[Retriever], optional
+        注入自定义 retriever 集合 (方便单测用 mock)。
+        None 时按 router 是否可用自动构建。
+    """
     question = (question or "").strip()
     if not question:
         return QAResult(question="", answer="问题不能为空", generated_by="template",
                         summary="empty question")
 
-    # 1. 检索 (v6 升级: EmbedRAG 优先, 失败降级到 TF-IDF)
-    embed_cits: List[Citation] = []
-    if router is not None and getattr(router, "api_key", None):
+    # 1. 检索: 多个 retriever 并联, 融合排序
+    if retrievers is None:
+        retrievers = _build_default_retrievers(router=router)
+    citations: List[Citation] = []
+    for ret in retrievers:
         try:
-            embed_cits = _retrieve_embed(question, target_date=target_date, top_k=top_k, router=router)
+            for h in ret.search(question, top_k=top_k):
+                citations.append(_hit_to_citation(h))
         except Exception as e:
-            logger.debug(f"embed_rag 检索失败: {e}")
-    if not embed_cits:
-        report_cits = _retrieve_reports(question, top_k=top_k)
-        ai_cits = _retrieve_ai_payload(question, top_k=3)
-        citations = report_cits + ai_cits
-    else:
-        ai_cits = _retrieve_ai_payload(question, top_k=3)
-        citations = embed_cits + ai_cits
+            logger.debug(f"retriever {getattr(ret, 'name', '?')} 失败: {e}")
+
+    # ai_report 主题词召回 (结构化字段, 不走 embedding)
+    ai_cits = _retrieve_ai_payload(question, top_k=3)
+    citations.extend(ai_cits)
+
+    # 融合: 按 score 降序, 截 top_k
     citations.sort(key=lambda c: -c.score)
     citations = citations[:top_k]
 
