@@ -244,7 +244,7 @@ AI_API_KEY=<你的 key>
 
 | Provider | 适用 | 推荐模型 | Base URL |
 |---|---|---|---|
-| **minimax** (推荐) | 国内直连,中文最强 | `MiniMax-M3` | `https://api.minimaxi.com/v1` |
+| **minimax**  | 国内直连,中文最强 | `MiniMax-M3` | `https://api.minimaxi.com/v1` |
 | DeepSeek | 性价比 | `deepseek-chat` | `https://api.deepseek.com/v1` |
 | 通义千问 (DashScope) | 阿里云 | `qwen-plus` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 | OpenAI | 需代理 | `gpt-4o-mini` | `https://api.openai.com/v1` |
