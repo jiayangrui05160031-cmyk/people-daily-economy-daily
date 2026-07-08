@@ -35,7 +35,9 @@ for _d in (
     _d.mkdir(parents=True, exist_ok=True)
 
 # 时序数据库 (SQLite) 路径
-TIMESERIES_DB_PATH: Path = DATA_HISTORICAL_DIR / "economy_timeseries.sqlite3"
+TIMESERIES_DB_PATH: Path = Path(
+    os.getenv("ECONOMY_TIMESERIES_DB_PATH", str(DATA_HISTORICAL_DIR / "economy_timeseries.sqlite3"))
+)
 
 
 # ============================================================

@@ -147,9 +147,10 @@ AI 编排                ReAct Agent · 多智能体辩论团 · LLM-as-Judge
 ### v9 工程化提升
 
 - **🌐 现代化驾驶舱 v9** — 多 Tab (总览/信号/因子/知识图谱/问答/区制/比较) + SSE 实时心跳 + 深色主题
-- **📡 30+ REST 端点** — `/v9/regime` · `/v9/embeddings/search` · `/v9/graphrag/ask` · `/v9/judge` · `/v9/agent/run` · `/v9/stream/*`
+- **📡 30+ REST 端点** — `/v6/risk` · `/v6/qa` · `/v6/council` · `/v6/embed/query` · `/v6/stream/*`
 - **🧬 向量化语义搜索** — TF-IDF → 语义向量,跨期主题匹配更准
 - **🔬 多维质量门控** — 4 Judge × 5 维度,出报告前先自评
+- **🔐 发布安全门禁** — CI 会扫描当前工作区的 GitHub PAT / `sk-*` / MiniMax key / 私钥块,避免把密钥带上 GitHub
 
 ---
 
@@ -204,13 +205,13 @@ python -X utf8 smoke_test.py --fast
 ### 端到端 (跳过抓取,复用缓存) — 4-5 分钟
 
 ```bash
-python -X utf8 main.py --target-date 2026-06-12 --skip-scrape
+python -X utf8 main.py --date 2026-06-12 --skip-scrape
 ```
 
 ### 端到端 (含抓取) — 8-12 分钟
 
 ```bash
-python -X utf8 main.py --target-date 2026-06-12
+python -X utf8 main.py --date 2026-06-12
 ```
 
 ### 启动 REST 服务
@@ -263,12 +264,11 @@ AI_API_KEY=<你的 key>
 | Risk | `GET /v6/risk` | 8 类风险指标 |
 | Portfolio | `POST /v6/portfolio` | 行业组合回测 |
 | Scenario | `POST /v6/scenario/run` | 蒙特卡洛情景 |
-| Regime | `GET /v9/regime` | Hamilton 区制后验 |
 | Embeddings | `POST /v6/embed/query` | 语义向量检索 (走 VectorRetriever) |
-| GraphRAG | `POST /v9/graphrag/ask` | 跨文章全局问答 |
-| Judge | `POST /v9/judge` | LLM-as-Judge 自评 |
-| Agent | `POST /v9/agent/run` | ReAct Agent |
-| Stream | `GET /v9/stream/*` | SSE 实时流 |
+| Embeddings | `POST /v6/embed/add` | 写入语义向量索引 |
+| Embeddings | `GET /v6/embed/stats` | 向量索引状态 |
+| Extract | `POST /v6/extract` | 文章 HTML 抽取 |
+| Stream | `GET /v6/stream/*` | SSE 实时流 |
 
 完整列表: 启动服务后访问 `http://localhost:8000/docs`。
 
@@ -284,7 +284,7 @@ python -X utf8 smoke_test.py --fast
 python -m pytest tests/test_v9_unified.py -v
 
 # 端到端 (跳过抓取) — 4-5 分钟
-python -X utf8 main.py --target-date 2026-06-12 --skip-scrape
+python -X utf8 main.py --date 2026-06-12 --skip-scrape
 ```
 
 `tests/test_v9_unified.py` 覆盖:

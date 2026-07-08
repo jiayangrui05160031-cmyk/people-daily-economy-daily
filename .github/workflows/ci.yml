@@ -53,6 +53,10 @@ jobs:
         run: |
           python -m compileall -q src/ main.py smoke_test.py
 
+      - name: Secret scan
+        run: |
+          python scripts/security_scan.py .
+
   # ============================================
   # Job 2: smoke_test (核心模块)
   # ============================================
@@ -85,7 +89,6 @@ jobs:
           AI_PROVIDER: custom
           AI_BASE_URL: https://api.minimaxi.com/v1
           AI_MODEL: MiniMax-M3
-          AI_API_KEY: ${{ secrets.AI_API_KEY || 'sk-cp-test' }}
         run: |
           python -X utf8 smoke_test.py --fast
 

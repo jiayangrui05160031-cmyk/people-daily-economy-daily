@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import tempfile
 import time
 import traceback
 from dataclasses import is_dataclass
@@ -19,13 +20,13 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-os.environ.setdefault(
-    "AI_API_KEY",
-    "sk-cp-96tvVGcc1Gr0iP_ss7DI36z3utzwu_Av35VlxZy_B6aeJNW1aptighAMeMh3gVosHyWHaSRSSl1FP3F4X_zIhsKVbCvWieat6sbo9Fs_icw_md7eUkejB04",
-)
 os.environ.setdefault("AI_BASE_URL", "https://api.minimaxi.com/v1")
 os.environ.setdefault("AI_MODEL", "MiniMax-M3")
 os.environ.setdefault("AI_PROVIDER", "minimax")
+os.environ.setdefault(
+    "ECONOMY_TIMESERIES_DB_PATH",
+    str(Path(tempfile.gettempdir()) / "macro_intelligence_smoke.sqlite3"),
+)
 
 
 class C:
@@ -478,6 +479,9 @@ SAMPLE = """[1] 央行宣布降准1万亿
 
 def check_llm(results):
     subheader("LLM 路由 (minimax)")
+    if not os.environ.get("AI_API_KEY", "").strip():
+        record(results, "llm/config", True, "skipped: AI_API_KEY is not set", 0.0)
+        return
     from src.ai.router import ModelRouter
     from src.ai.schema import ThemeKeywordsResult
     router = ModelRouter()

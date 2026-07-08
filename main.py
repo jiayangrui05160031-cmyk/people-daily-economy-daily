@@ -138,6 +138,7 @@ def step4_quant_and_compare(articles, nlp_stats, ai_result, target_date, no_comp
     metrics = compute_metrics(
         nlp_stats.word_freq, ai_result,
         list(nlp_stats.industry_hits.keys()), 12,
+        article_count=len(articles),
     )
     cmp_res = None
     if not no_comparison:
@@ -615,7 +616,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--date", type=str, default="",
+    parser.add_argument("--date", "--target-date", dest="date", type=str, default="",
                         help="报告日期 YYYY-MM-DD, 默认今天")
     parser.add_argument("--days", type=int, default=2,
                         help="爬取回溯天数(含当天), 默认 2")

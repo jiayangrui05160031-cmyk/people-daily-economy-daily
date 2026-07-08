@@ -9,6 +9,7 @@ matplotlib>=3.7.0
 python-dotenv>=1.0.0
 jinja2>=3.1.0
 openai>=1.30.0
+tenacity>=8.2.0
 
 # === v6: REST API / 工程化 ===
 fastapi>=0.104.0
@@ -20,3 +21,7 @@ httpx>=0.25.0
 # === v9: 前沿向量 / Transformer / Agent ===
 torch>=2.0.0
 transformers>=4.35.0
+
+# === v8: 政策 PDF 解析 ===
+pdfplumber>=0.11.0
+pypdf>=4.0.0

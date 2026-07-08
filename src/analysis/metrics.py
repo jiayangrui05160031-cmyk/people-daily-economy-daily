@@ -121,14 +121,20 @@ def _intensity_label(entropy, top_share):
     return "常规分布"
 
 
-def compute(word_freq, ai_report, hit_industries, total_industries):
+def compute(word_freq, ai_report, hit_industries, total_industries, article_count=None):
     ent = attention_entropy(word_freq)
     top_share = attention_top_share(word_freq)
     s_idx, s_disp = sentiment_index(getattr(ai_report.sentiment, "items", []) if ai_report else [])
     p_score, p_conf = policy_stance(getattr(ai_report, "policy_direction", None) if ai_report else None)
     breadth = industry_breadth(hit_industries, total_industries)
     events = len(getattr(ai_report.events, "events", []) if ai_report else [])
-    arts = len(getattr(ai_report.industries, "industries", []) if ai_report else [])
+    if article_count is None:
+        arts = max(
+            len(getattr(ai_report.industries, "industries", []) if ai_report else []),
+            1,
+        )
+    else:
+        arts = int(article_count)
     e_density = event_density(events, max(arts, 1))
 
     return QuantitativeMetrics(
