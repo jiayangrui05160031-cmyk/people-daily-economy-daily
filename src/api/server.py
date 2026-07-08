@@ -56,7 +56,7 @@ if str(ROOT) not in sys.path:
 try:
     from fastapi import FastAPI, HTTPException, Query, Body, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse, Response, PlainTextResponse, HTMLResponse, FileResponse
+    from fastapi.responses import JSONResponse, Response, StreamingResponse, PlainTextResponse, HTMLResponse, FileResponse
     from pydantic import BaseModel, Field
 except ImportError as e:
     raise SystemExit(

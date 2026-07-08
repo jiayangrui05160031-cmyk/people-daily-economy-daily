@@ -190,7 +190,6 @@ def _tool_get_risk_metrics(target_date: str = "") -> str:
             "sharpe_ratio": rm.sharpe_ratio, "sortino_ratio": rm.sortino_ratio, "calmar_ratio": rm.calmar_ratio, "expected_shortfall_95": rm.expected_shortfall_95,
             "max_drawdown": rm.max_drawdown,
             "var_95": rm.var_95, "var_99": rm.var_99,
-            "expected_shortfall_95": rm.expected_shortfall_95,
             "skewness": rm.skewness,
             "kurtosis": rm.kurtosis,
             "level": rm.risk_level,
@@ -244,7 +243,7 @@ def _tool_ask_graph_rag(question: str, target_date: str = "") -> str:
         return f"{{\"error\": \"{e}\"}}"
 
 
-def _tool_run_scenario(scenario: str = "base") -> str:
+def _tool_run_scenario(target_date: str = "", scenario: str = "base") -> str:
     try:
         from src.analysis.scenario import list_scenarios, run
         if scenario == "list":
