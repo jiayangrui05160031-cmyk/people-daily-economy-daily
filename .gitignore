@@ -55,7 +55,7 @@ data/historical/*.sqlite3*
 # reports/*.md
 
 # ===== 测试临时文件 =====
-test_*.py
+/test_*.py
 *.bak
 *.tmp
 *.log
