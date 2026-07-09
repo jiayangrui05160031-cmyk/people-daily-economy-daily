@@ -39,34 +39,31 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
-import os
 import sys
 import time
 from contextlib import asynccontextmanager
 from dataclasses import asdict, is_dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 try:
-    from fastapi import FastAPI, HTTPException, Query, Body, WebSocket, WebSocketDisconnect
+    from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse, Response, StreamingResponse, PlainTextResponse, HTMLResponse, FileResponse
+    from fastapi.responses import Response, StreamingResponse, HTMLResponse, FileResponse
     from pydantic import BaseModel, Field
 except ImportError as e:
     raise SystemExit(
         "FastAPI 未安装. 请先: pip install fastapi uvicorn[standard] pydantic"
     ) from e
 
-from src.config import REPORT_DIR, DASHBOARD_DIR, TIMESERIES_DB_PATH
+from src.config import REPORT_DIR, DASHBOARD_DIR
 from src.storage import db as db_mod
-from src.storage import repository as repo
-from src.utils.date_utils import parse_date, resolve_target_date, yesterday
+from src.utils.date_utils import parse_date, resolve_target_date
 
 # v6 子模块
 from src.api.observability import (
@@ -76,6 +73,7 @@ from src.api.observability import (
 )
 from src.api.multi_agent import council as run_council
 from src.api.shap_explain import explain_decision as run_shap
+from src.api.jobs import PipelineJobManager
 
 
 # ============================================================
@@ -169,6 +167,27 @@ class RiskQuery(BaseModel):
     rf_rate: float = 0.025
 
 
+class PipelineRunBody(BaseModel):
+    target_date: Optional[str] = None
+    skip_scrape: bool = True
+    skip_ai: bool = False
+
+
+class PipelineJobResp(BaseModel):
+    id: str
+    target_date: str
+    skip_scrape: bool
+    skip_ai: bool
+    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    created_at: str
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    returncode: Optional[int] = None
+    stdout_tail: str = ""
+    stderr_tail: str = ""
+    error: Optional[str] = None
+
+
 # ============================================================
 # 工具
 # ============================================================
@@ -243,6 +262,7 @@ async def lifespan(app: FastAPI):
     log.info("宏观经济智能分析 API v6 启动")
     log.info("=" * 60)
     yield
+    await PIPELINE_JOBS.shutdown()
     log.info("API shutdown")
 
 
@@ -264,6 +284,8 @@ app = FastAPI(
 
 # 立即挂载中间件 (不能放在 lifespan 里)
 install_middleware(app)
+
+PIPELINE_JOBS = PipelineJobManager()
 
 app.add_middleware(
     CORSMiddleware,
@@ -674,40 +696,101 @@ async def v6_shap(target_date: Optional[str] = Query(None)) -> Dict[str, Any]:
 # ============================================================
 # 6. Operations
 # ============================================================
-@app.post("/v6/run", tags=["ops"])
-async def v6_run(
-    target_date: Optional[str] = Body(None),
-    skip_scrape: bool = Body(True),
-    skip_ai: bool = Body(False),
-) -> Dict[str, Any]:
-    """触发端到端 pipeline (异步)."""
-    d = _resolve_date(target_date)
+def _pipeline_command(d: str, body: PipelineRunBody) -> List[str]:
+    command = [
+        sys.executable, "-X", "utf8", "-m", "main",
+        "--date", d, "--window-days", "14",
+    ]
+    if body.skip_scrape:
+        command.append("--skip-scrape")
+    if body.skip_ai:
+        command.append("--skip-ai")
+    else:
+        command.extend(["--no-dashboard", "--no-kg"])
+    return command
 
-    async def _run():
-        cmd = [
-            sys.executable, "-X", "utf8", "-m", "main",
-            "--date", d, "--window-days", "14",
-        ]
-        if skip_scrape:
-            cmd.append("--skip-scrape")
-        if skip_ai:
-            cmd.append("--skip-ai")
-        else:
-            cmd.append("--no-dashboard")  # 后台跑不阻塞
-            cmd.append("--no-kg")
-        proc = await asyncio.create_subprocess_exec(
-            *cmd, cwd=str(ROOT),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+
+@app.post(
+    "/v6/run",
+    response_model=PipelineJobResp,
+    status_code=202,
+    tags=["ops"],
+)
+async def v6_run(body: PipelineRunBody) -> Dict[str, Any]:
+    """提交 pipeline 后立即返回任务 ID；保留原路径以兼容现有调用方."""
+    d = _resolve_date(body.target_date)
+    try:
+        return PIPELINE_JOBS.submit(
+            target_date=d,
+            skip_scrape=body.skip_scrape,
+            skip_ai=body.skip_ai,
+            command=_pipeline_command(d, body),
+            cwd=ROOT,
         )
-        stdout, stderr = await proc.communicate()
-        return {
-            "returncode": proc.returncode,
-            "stdout_tail": (stdout or b"")[-2000:].decode("utf-8", errors="replace"),
-            "stderr_tail": (stderr or b"")[-1000:].decode("utf-8", errors="replace"),
-        }
-    res = await _run()
-    return {"date": d, "result": res}
+    except RuntimeError as exc:
+        raise HTTPException(429, str(exc)) from exc
+
+
+@app.get("/v6/jobs", response_model=List[PipelineJobResp], tags=["ops"])
+async def list_pipeline_jobs(
+    status: Optional[Literal["queued", "running", "succeeded", "failed", "cancelled"]] = Query(None),
+    limit: int = Query(20, ge=1, le=50),
+) -> List[Dict[str, Any]]:
+    """按新到旧列出后台任务，可按生命周期状态过滤."""
+    return PIPELINE_JOBS.list(status=status, limit=limit)
+
+
+@app.get("/v6/jobs/{job_id}", response_model=PipelineJobResp, tags=["ops"])
+async def get_pipeline_job(job_id: str) -> Dict[str, Any]:
+    job = PIPELINE_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(404, "任务不存在")
+    return job
+
+
+@app.delete("/v6/jobs/{job_id}", response_model=PipelineJobResp, tags=["ops"])
+async def cancel_pipeline_job(job_id: str) -> Dict[str, Any]:
+    job = PIPELINE_JOBS.cancel(job_id)
+    if job is None:
+        raise HTTPException(404, "任务不存在")
+    return job
+
+
+@app.get("/ops", response_class=HTMLResponse, tags=["ops"])
+async def operations_dashboard() -> str:
+    """零构建依赖的任务控制台，展示 API 与前端状态轮询能力."""
+    return """<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Pipeline Operations</title>
+<style>
+body{margin:0;background:#08111f;color:#e5edf7;font:14px system-ui,-apple-system,sans-serif}
+main{max-width:1050px;margin:auto;padding:32px 20px}h1{font-size:28px;margin:0 0 8px}
+.sub{color:#91a4bd;margin-bottom:24px}.panel{background:#111d2e;border:1px solid #24364e;border-radius:14px;padding:18px}
+form{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center}
+input,button{border-radius:8px;border:1px solid #354a66;padding:10px;background:#0a1525;color:#e5edf7}
+button{background:#2b6df3;border:0;font-weight:700;cursor:pointer}.cancel{background:#8f3340;padding:6px 10px}
+table{width:100%;border-collapse:collapse;margin-top:20px}th,td{text-align:left;padding:11px;border-bottom:1px solid #24364e}
+th{color:#91a4bd}.status{font-weight:700}.succeeded{color:#4ade80}.failed{color:#fb7185}
+.running,.queued{color:#60a5fa}.cancelled{color:#fbbf24}@media(max-width:720px){form{grid-template-columns:1fr 1fr}table{font-size:12px}}
+</style></head><body><main><h1>Pipeline Operations</h1>
+<div class="sub">后台流水线任务 · 生命周期追踪 · 一键取消 · 2 秒自动刷新</div>
+<section class="panel"><form id="run-form"><input id="date" type="date" aria-label="目标日期">
+<label><input id="scrape" type="checkbox"> 重新抓取</label><label><input id="ai" type="checkbox"> 跳过 AI</label>
+<button type="submit">启动分析</button></form>
+<table><thead><tr><th>任务</th><th>日期</th><th>状态</th><th>开始时间</th><th>结果</th><th></th></tr></thead>
+<tbody id="jobs"><tr><td colspan="6">加载中…</td></tr></tbody></table></section></main>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function load(){const r=await fetch('/v6/jobs?limit=30');const jobs=await r.json();
+document.querySelector('#jobs').innerHTML=jobs.length?jobs.map(j=>`<tr><td title="${esc(j.id)}">${esc(j.id.slice(0,8))}</td>
+<td>${esc(j.target_date)}</td><td class="status ${esc(j.status)}">${esc(j.status)}</td>
+<td>${esc(j.started_at?.replace('T',' ').slice(0,19)||'—')}</td><td>${j.returncode??'—'}</td>
+<td>${['queued','running'].includes(j.status)?`<button class="cancel" data-id="${esc(j.id)}">取消</button>`:''}</td></tr>`).join(''):'<tr><td colspan="6">暂无任务</td></tr>'}
+document.querySelectorAll('.cancel').forEach(b=>b.onclick=async()=>{await fetch('/v6/jobs/'+b.dataset.id,{method:'DELETE'});load()})}
+document.querySelector('#run-form').onsubmit=async e=>{e.preventDefault();await fetch('/v6/run',{method:'POST',headers:{'content-type':'application/json'},
+body:JSON.stringify({target_date:document.querySelector('#date').value||null,skip_scrape:!document.querySelector('#scrape').checked,skip_ai:document.querySelector('#ai').checked})});load()};
+load();setInterval(load,2000);
+</script></body></html>"""
 
 
 # ============================================================

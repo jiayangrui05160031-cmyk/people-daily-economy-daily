@@ -24,6 +24,7 @@
 - [🧪 烟测与一键运行](#-烟测与一键运行)
 - [🐳 Docker 部署](#-docker-部署)
 - [🌐 REST API 速览](#-rest-api-速览)
+- [⚙️ 后台任务控制台](#️-后台任务控制台)
 - [🖥️ 仪表盘与样例报告](#️-仪表盘与样例报告)
 - [🧩 项目结构](#-项目结构)
 - [🛠️ 技术栈](#️-技术栈)
@@ -221,6 +222,24 @@ python -X utf8 -m src.api.server --host 0.0.0.0 --port 8000
 # → http://localhost:8000/docs   (Swagger UI)
 ```
 
+### ⚙️ 后台任务控制台
+
+打开 `http://localhost:8000/ops`，可以提交分析流水线、查看实时生命周期并取消运行中的任务。控制台不需要 Node.js 或额外前端构建工具，通过 REST API 每 2 秒刷新一次。
+
+```bash
+# 立即返回 HTTP 202 和任务 ID，不再阻塞到流水线结束
+curl -X POST http://localhost:8000/v6/run \
+  -H "Content-Type: application/json" \
+  -d '{"target_date":"2026-06-12","skip_scrape":true,"skip_ai":true}'
+
+# 查询全部任务、单个任务，以及取消任务
+curl "http://localhost:8000/v6/jobs?status=running"
+curl http://localhost:8000/v6/jobs/<job_id>
+curl -X DELETE http://localhost:8000/v6/jobs/<job_id>
+```
+
+任务状态严格按 `queued → running → succeeded/failed` 流转，也支持 `cancelled`。单工作队列避免两条重型分析流水线争抢资源；任务表最多保留 50 条记录（运行中的任务不会被清理），并只保存有长度上限的输出尾部，避免长任务持续占用内存。该实现面向单实例本地部署与作品演示；生产多副本场景可保持 API 契约不变，把内存注册表替换为 Redis/Celery。
+
 ### Docker 部署
 
 ```bash
@@ -258,6 +277,10 @@ AI_API_KEY=<你的 key>
 | 模块 | 端点 | 能力 |
 |---|---|---|
 | Health | `GET /health` | 24 模块健康度 |
+| Operations | `POST /v6/run` | 异步提交分析任务，返回 `202 + job id` |
+| Operations | `GET /v6/jobs` | 任务列表与状态过滤 |
+| Operations | `GET/DELETE /v6/jobs/{job_id}` | 查询详情 / 取消任务 |
+| Operations UI | `GET /ops` | 零构建依赖的任务控制台 |
 | AI | `POST /v6/qa` | RAG 智能问答 (走 retrieval/ 子包) |
 | AI | `POST /v6/council` | 4 智能体顾问团 + 仲裁 |
 | AI | `GET /v6/shap` | SHAP 决策解释 |
